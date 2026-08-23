@@ -1,78 +1,73 @@
 # HestiaHealth — 2 minute video script
 
 Target: **110 seconds** (10s buffer under the 120s hard limit). Read the narration
-naturally — don't rush; the demo commands are already tested and fast.
+naturally — don't rush.
 
 Record with macOS's built-in screen recorder: **Cmd+Shift+5** → "Record Selected
-Portion" (select just your Terminal window) or full screen if you also want to
-show the GitHub repo in a browser tab. It records system audio + mic if you
-enable the mic in the little control bar that pops up — make sure mic is ON.
+Portion" (select your Safari/Chrome window) or full screen. Enable the mic in
+the control bar that pops up.
 
-Two windows to have ready before you hit record:
-1. A **Terminal**, split or two tabs:
-   - Tab A: `cd /Users/anasiusa/Development/hestia-studio-adtc`
-   - Tab B: `cd /Users/anasiusa/Development/final-year-project/Mako-Demo/v3-langraph`
-2. A **browser tab** open to `https://github.com/aNasiusA/hestia-studio-adtc`
+## Before you hit record
 
-The local model server is already running in the background on port 8811 —
-don't restart it mid-recording, it's warm and fast right now. Both demo
-commands below are pre-verified against it.
+Both servers are already running in the background — don't restart them:
+- `llama-server` on port 8811 (the local model)
+- The clinical console backend on port 8001
+
+Just open **`http://localhost:8001/`** in your browser and confirm it loads
+the HestiaHealth console before you start recording. If either server isn't
+running, tell me and I'll restart them.
+
+Have a second tab ready at `https://github.com/aNasiusA/hestia-studio-adtc`
+for the opening/closing shots.
 
 ---
 
-## 0:00 – 0:15 — The problem (talk to camera or over the GitHub repo page)
+## 0:00 – 0:15 — The problem
+
+*(Over the GitHub repo page)*
 
 > "Cloud-hosted LLMs need API fees, stable fiber, and constant electricity —
 > three things a lot of African clinics can't rely on. This is HestiaHealth:
-> making a real multi-agent clinical AI system I built — called MAKO — run
-> its decision-making entirely offline, on an 8 gigabyte budget laptop."
+> a real multi-agent clinical AI system I built — called MAKO — with its
+> decision-making running entirely offline, on an 8 gigabyte budget laptop."
 
-*(Show the GitHub repo README/REPORT.md briefly while saying this.)*
+## 0:15 – 0:30 — What it does
 
-## 0:15 – 0:30 — What MAKO actually does
+*(Switch to the HestiaHealth console at localhost:8001)*
 
 > "MAKO routes a patient case between specialist agents — cardiology,
-> neurology, oncology and more — using a knowledge graph. At every step, an
-> LLM decides which specialist should act next. Today that decision needs a
-> cloud model. HestiaHealth replaces that one call with Qwen 2.5, 3 billion
-> parameters, quantized to about 2 gigabytes, running locally through
-> llama.cpp."
+> neurology, and more — using a knowledge graph. At every step it has to
+> decide which specialist acts next. This console is a clinical front end
+> for that: type in a case, and watch it route, live, against a model
+> running entirely on this laptop."
 
-## 0:30 – 1:05 — Live demo: MAKO's actual orchestrator, not a mock
+## 0:30 – 1:10 — Live demo: submit a real case
 
-Switch to **Terminal Tab B** (the MAKO `v3-langraph` directory). Say this
-while you run the command:
+Click into the "New case" box and type (or paste):
 
-> "This isn't a prompt imitating MAKO — this is MAKO's real orchestrator
-> code, pointed at the local model instead of the cloud, deciding a real
-> patient case live."
-
-Paste and run:
-
-```bash
-python -m orchestrator.run "A 54-year-old patient presents with chest pain; triage flags possible cardiac involvement"
+```
+A 62-year-old patient presents with sudden-onset facial droop, slurred speech, and left arm weakness starting 40 minutes ago.
 ```
 
-Let the log stream on screen — it takes about 6 seconds and shows, live:
-- entry agent selected from the knowledge graph
-- a hop decision proposed, rejected, and retried against the graph
-- the accepted handoff, and why
-- the orchestrator's own decision to stop and ask for more input
+Click **Route case**. Narrate as the timeline streams in:
 
-> "Entry agent picked from the graph, a handoff decision validated against a
-> real graph edge — it even rejected its own proposals twice before landing
-> on one that passed — and then it stopped itself when it judged the case
-> needed more information. That's the actual orchestrator, running fully
-> offline, in about six seconds."
+> "It's picking an entry agent from the knowledge graph now — there's no
+> internet connection involved anywhere in this. Each card here is a real
+> step: which agent acted, what it decided, and the exact handoff edge it
+> used to hand off to the next one. It even shows when the graph validator
+> rejected a proposal before accepting one — that's the action-masking gate
+> that stops the model from committing to a handoff it hasn't justified."
 
-## 1:05 – 1:30 — The numbers
+Let 2–3 steps stream in (roughly 10–15 seconds), then:
 
-Switch to **Terminal Tab A** (the submission repo).
+> "Every one of these decisions, generated locally, in real time."
+
+## 1:10 – 1:35 — The numbers
+
+*(Switch to Terminal, in the submission repo directory)*
 
 > "Benchmarked with ADTC's own profiler tool, which drives llama-bench
 > directly — the same measurement path judges use."
-
-Paste and run:
 
 ```bash
 cat submission.json | python3 -m json.tool | grep -A5 throughput
@@ -82,23 +77,23 @@ cat submission.json | python3 -m json.tool | grep -A4 memory
 > "Thirty tokens a second, three point eight gigabytes peak memory — inside
 > the seven gigabyte budget — no thermal throttling."
 
-## 1:30 – 1:55 — Wrap
+## 1:35 – 1:55 — Wrap
 
-> "The repo has the full report, the benchmarks, the design decisions, and
-> the unedited trace from that live MAKO run so it's checkable, not just
-> claimed. This is HestiaHealth — MAKO's autonomous clinical routing,
-> running entirely offline, on hardware people already have."
+*(Back to the GitHub repo — scroll the file tree showing `mako/`, `mako-integration/`, `REPORT.md`)*
 
-*(Show the repo's `mako-integration/` folder or `REPORT.md` one more time.)*
+> "The repo has the full report, the benchmarks, and MAKO's actual
+> orchestrator code — not a description of it, the real thing, vendored in
+> and verified working. This is HestiaHealth: MAKO's autonomous clinical
+> routing, running entirely offline, on hardware people already have."
 
 ## 1:55 – end — Stop recording
 
 ---
 
-## Fallback demo (if the live MAKO run doesn't want to cooperate on camera)
+## Fallback demo (if the live console doesn't want to cooperate on camera)
 
-The raw local-model call is also pre-verified and much simpler to reuse —
-run from the **submission repo** directory:
+Raw local-model call, from the submission repo directory — responds in
+under a second:
 
 ```bash
 curl -s http://localhost:8811/v1/chat/completions \
@@ -110,16 +105,23 @@ curl -s http://localhost:8811/v1/chat/completions \
   }' | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['choices'][0]['message']['content'])"
 ```
 
-Responds in under a second with a correct clinical decision. Use this if you
-want a shorter, guaranteed-fast segment instead of the full orchestrator run.
+Or from `mako/`, the CLI version of the same live orchestrator run:
+
+```bash
+cd /Users/anasiusa/Development/hestia-studio-adtc/mako
+.venv/bin/python -m orchestrator.run "A 54-year-old patient presents with chest pain; triage flags possible cardiac involvement"
+```
 
 ---
 
 ## After recording
 
-1. Upload to YouTube — **Unlisted** is fine, it just needs to be viewable via
-   link, doesn't need to be public-searchable.
+1. Upload to YouTube — **Unlisted** is fine.
 2. Copy the YouTube URL.
 3. Tell me the URL, or paste it yourself into the Devpost "Video demo link"
    field at:
    https://devpost.com/submit-to/30091-africa-deep-tech-challenge-2026/manage/submissions/1145912-hestiahealth/project_details/edit
+
+It's also worth grabbing 2–3 plain screenshots (Cmd+Shift+4) of the console
+mid-run for the Devpost image gallery — the rules specifically ask for
+"screenshots or short videos showing your build in action."

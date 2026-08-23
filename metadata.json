@@ -1,0 +1,37 @@
+{
+  "team_id": "TODO-your-team-id",
+  "domain": "autonomous_ai_agents",
+  "language_scope": ["en"],
+  "african_alpha_claim": true,
+  "budget_laptop_claim": true,
+  "submitter": {
+    "name": "TODO-your-name",
+    "email": "TODO-your-email@domain.com",
+    "github_handle": "TODO-your-github"
+  },
+  "cross_disciplinary_pairing": {
+    "discipline": "healthcare",
+    "load_bearing": true,
+    "description": "MAKO is a knowledge-graph-based multi-agent orchestrator for clinical workflows: agents, capabilities, tools, and handoffs live in an RDF/Turtle KG spanning Cardiology, Emergency Medicine, Oncology, Neurology, Orthopedics, and Lab/Pathology. Its hop-by-hop orchestrator (v3-langraph) uses a ReAct-style LLM decision loop to pick the next specialist agent at each step of a patient case, querying the KG for valid handoffs and validating each decision before committing to it. This submission replaces that decision loop's cloud LLM call with this local GGUF model running fully offline via llama.cpp, so the multi-agent clinical orchestration can run entirely on a budget laptop with no internet connectivity, API fees, or dependence on stable power/fiber — conditions common in under-resourced African clinics."
+  },
+  "test_prompts": [
+    {
+      "prompt_id": "tp_001",
+      "prompt": "You are the orchestration agent for a multi-agent clinical system with no internet access. Current case: a 54-year-old patient presents with chest pain; the Cardiology Triage agent has just finished its assessment and flagged possible cardiac involvement. Available next agents and what they handle: Cardiology_ECGInterpretation (reads and interprets ECG traces), Cardiology_EchoAnalysis (interprets echocardiograms), Cardiology_TreatmentPlanning (builds a cardiac treatment plan; requires ECG and echo results first), Cardiology_StressTestAnalysis (interprets stress test results). Decide which single agent should act next, name it exactly, and give a one-sentence clinical justification for why it comes before the others."
+    },
+    {
+      "prompt_id": "tp_002",
+      "prompt": "You are an autonomous routing agent in a clinical multi-agent system. A patient case has just received an EEG interpretation (Neurology_EEGInterpretation) showing abnormal results consistent with a possible stroke. Two candidate next agents are available: Neurology_StrokeAssessment (performs focused stroke workup) and Neurology_TreatmentPlanning (builds a general neurological treatment plan). State which agent should handle the case next and justify your decision in one sentence, explicitly noting what would go wrong clinically if the agents were run in the opposite order."
+    }
+  ],
+  "model": {
+    "name": "Qwen2.5-3B-Instruct-Q4_K_M",
+    "runtime": "llama.cpp",
+    "quantization": "GGUF Q4_K_M",
+    "parameters_estimate": "3B",
+    "packaging": "binary_bundle"
+  },
+  "_runtime": {
+    "model_path": "model/qwen2.5-3b-instruct-q4_k_m.gguf"
+  }
+}

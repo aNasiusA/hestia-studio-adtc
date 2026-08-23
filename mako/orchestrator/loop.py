@@ -1,8 +1,9 @@
 """End-to-end orchestration loop (plan.md §9), with termination (§7) and loop
-safety (§8) wired in.
+safety (§8) wired in — plus a resumable extension so a paused or hop-limited
+run isn't a dead end.
 
     entry_agent <- recall -> select_process -> pooled nodeBonus argmax   [§1]
-    loop (bounded by MAX_HOP_COUNT):
+    loop (bounded by a hop budget):
         raw_output <- execute(current_agent)          [domain agent, §12]
         brief      <- BriefAgent(raw_output)           [§5]
         trace.append(...)                              [§6]
@@ -16,11 +17,29 @@ safety (§8) wired in.
 Both termination triggers are live simultaneously: the coverage-complete safety
 net can stop the run even if the orchestrator would continue, and the
 orchestrator may voluntarily TERMINATE early (recorded distinctly).
+
+Resumability
+------------
+A run that pauses for one of two reasons is not final:
+
+  * ``voluntary_early_stop`` — the model itself decided it needed more input
+    before proposing the next hop. ``current_agent`` already executed; what's
+    missing is a decision for what comes after it.
+  * ``max_hop_exceeded`` — the hop budget ran out mid-flight. The *next*
+    agent to run was already decided (``current_agent`` was advanced) but
+    never executed.
+
+Both cases capture a :class:`LoopState` snapshot on the returned
+:class:`RunOutput` (``resume_state``). :func:`continue_orchestration` takes
+that snapshot plus additional human-provided context, folds the context in at
+the right point for each case, and resumes the same loop with a fresh hop
+budget — rather than restarting the whole case from scratch.
 """
 from __future__ import annotations
 
 import uuid
-from typing import Callable, List, Optional
+from dataclasses import dataclass, field
+from typing import Callable, List, Optional, Set, Tuple
 
 from agents.brief import BriefAgent
 from agents.context import AgentContextProvider
@@ -42,21 +61,198 @@ from pipeline.recall import recall_candidates
 
 log = get_logger("loop")
 
+# Reasons a paused run can be resumed from. Anything else (completed,
+# session_retry_exceeded) is final.
+RESUMABLE_REASONS = {"voluntary_early_stop", "max_hop_exceeded"}
+
+
+@dataclass
+class LoopState:
+    """Everything needed to resume the hop loop from where it paused.
+
+    Not serialized to disk — this lives only in-process (the webui's
+    TaskRegistry holds it in memory against a task_id) for the lifetime of a
+    single case's back-and-forth. It is *not* the audit record; ``trace`` and
+    ``eval_log`` inside it are the same objects being built up across
+    resumptions and are what eventually gets persisted.
+    """
+
+    kg: KGData
+    query: KGQueryBackend
+    provider: LLMProvider
+    domain: DomainAgentExecutor
+    brief_agent: BriefAgent
+    task: str
+    task_type_label: str
+    required: Set[str]
+    covered: Set[str]
+    raw_history: List[str]
+    trace_summary: List[str]
+    incoming: Optional[IncomingEdge]
+    pending_edge: Tuple[str, str]
+    current_agent: str
+    trace: Trace
+    eval_log: EvalLog
+    last_brief: Optional[str] = None
+    hops_used: int = 0
+    # True  -> current_agent already executed; its TraceStep is trace.steps[-1].
+    #          Resuming means re-running only the hop-decision session for it.
+    # False -> current_agent still needs to be executed (domain step first).
+    awaiting_decision: bool = False
+
 
 class RunOutput:
-    """Bundle returned by :func:`run_orchestration`."""
+    """Bundle returned by :func:`run_orchestration` / :func:`continue_orchestration`."""
 
-    def __init__(self, trace: Trace, eval_log: EvalLog, ok: bool, reason: str) -> None:
+    def __init__(self, trace: Trace, eval_log: EvalLog, ok: bool, reason: str,
+                 resume_state: Optional[LoopState] = None) -> None:
         self.trace = trace
         self.eval_log = eval_log
         self.ok = ok
         self.reason = reason
+        # Present only when `reason` is in RESUMABLE_REASONS.
+        self.resume_state = resume_state
+
+    @property
+    def resumable(self) -> bool:
+        return self.resume_state is not None
 
 
 def _covered_required(kg: KGData, agent: str, required: set, already: set) -> List[str]:
     """Required capabilities this agent newly covers."""
     handled = kg.agent_handles.get(agent, set())
     return sorted((handled & required) - already)
+
+
+def _finalize(out: RunOutput, state: LoopState) -> RunOutput:
+    out.trace.capabilities_covered = sorted(state.covered)
+    out.trace.final_output = state.raw_history[-1] if state.raw_history else ""
+    out.trace.final_status = out.reason
+    return out
+
+
+def _run_from(state: LoopState, on_step: Optional[Callable[[TraceStep], None]],
+              hop_budget: int) -> RunOutput:
+    """Run (or resume) the hop loop for up to ``hop_budget`` more hops."""
+    hop = state.hops_used
+    end_hop = state.hops_used + hop_budget
+
+    while hop < end_hop:
+        if state.awaiting_decision:
+            # Resuming a voluntary-stop: the step for current_agent already
+            # exists (with additional context folded into last_brief by the
+            # caller) — only the hop-decision needs re-running. It was
+            # already emitted via on_step() in the run that first paused, so
+            # this iteration must not re-emit it (that would duplicate the
+            # card in any UI rendering these events) — only genuinely new
+            # steps get emitted below.
+            step = state.trace.steps[-1]
+            step_already_emitted = True
+            state.awaiting_decision = False
+        else:
+            step_already_emitted = False
+            raw_output = state.domain.run(state.current_agent, state.task, state.raw_history)
+            brief = state.brief_agent.summarize(state.current_agent, raw_output)
+            state.raw_history.append(raw_output)
+            state.last_brief = brief
+
+            newly = _covered_required(state.kg, state.current_agent, state.required, state.covered)
+            state.covered.update(newly)
+            state.trace_summary.append(state.current_agent)
+
+            pred_used, pred_label = ("", "")
+            if state.incoming is not None:
+                pred_used, pred_label = state.pending_edge
+
+            step = TraceStep(
+                step_index=hop,
+                agent=state.current_agent,
+                capability_covered=", ".join(newly),
+                predicate_used=pred_used,
+                predicate_label=pred_label,
+                incoming_edge=state.incoming,
+                brief=brief,
+                attempt_count=0,
+                raw_output=raw_output,
+            )
+            state.trace.steps.append(step)
+            log.info("hop %d: %s  covers[%s]  (covered %d/%d)",
+                     hop, state.current_agent, ", ".join(newly) or "-",
+                     len(state.covered), len(state.required))
+
+            if state.required.issubset(state.covered):
+                step.termination = Termination(True, "coverage_satisfied")
+                if on_step:
+                    on_step(step)
+                log.success("coverage satisfied -> completed")
+                state.hops_used = hop + 1
+                return _finalize(RunOutput(state.trace, state.eval_log, True, "completed"), state)
+
+        session = HopDecisionSession(
+            kg=state.kg, query=state.query, provider=state.provider, eval_log=state.eval_log,
+            session_id=f"{uuid.uuid4().hex[:8]}",
+        )
+        outcome = session.run(
+            task=state.task, task_type_label=state.task_type_label,
+            current_agent=state.current_agent, required=list(state.required),
+            covered=state.covered, last_brief=state.last_brief,
+            trace_summary=list(state.trace_summary),
+        )
+        step.attempt_count = outcome.attempt_count
+
+        if outcome.kind == OUT_TERMINATE:
+            step.termination = Termination(True, "llm_voluntary")
+            if on_step and not step_already_emitted:
+                on_step(step)
+            log.warning("orchestrator voluntarily terminated (early stop)")
+            state.hops_used = hop + 1
+            state.awaiting_decision = True
+            return _finalize(
+                RunOutput(state.trace, state.eval_log, False, "voluntary_early_stop", resume_state=state),
+                state,
+            )
+        if outcome.kind == OUT_FAILED:
+            step.termination = Termination(True, "session_retry_exceeded")
+            if on_step and not step_already_emitted:
+                on_step(step)
+            log.error("session retry cap exceeded -> hard fail")
+            state.hops_used = hop + 1
+            return _finalize(RunOutput(state.trace, state.eval_log, False, "session_retry_exceeded"), state)
+        if outcome.kind == OUT_COMMIT and outcome.agent:
+            state.incoming = IncomingEdge(from_agent=state.current_agent)
+            state.pending_edge = (outcome.predicate or "", outcome.label or "")
+            log.info("  -> commit %s  [%s]  (attempts=%d)",
+                     outcome.agent, outcome.predicate, outcome.attempt_count)
+            if on_step and not step_already_emitted:
+                on_step(step)
+            state.current_agent = outcome.agent
+            state.awaiting_decision = False
+            hop += 1
+            continue
+
+        # Defensive: unknown outcome kind.
+        step.termination = Termination(True, "llm_voluntary")
+        if on_step and not step_already_emitted:
+            on_step(step)
+        state.hops_used = hop + 1
+        state.awaiting_decision = True
+        return _finalize(
+            RunOutput(state.trace, state.eval_log, False, "voluntary_early_stop", resume_state=state),
+            state,
+        )
+
+    # Hop budget exhausted without a terminal decision this round.
+    if state.trace.steps:
+        state.trace.steps[-1].termination = Termination(True, "max_hop")
+        if on_step:
+            on_step(state.trace.steps[-1])
+    log.error("hop budget (%d) exceeded for this run/continuation", hop_budget)
+    state.hops_used = hop
+    state.awaiting_decision = False  # current_agent is decided but not yet executed
+    return _finalize(
+        RunOutput(state.trace, state.eval_log, False, "max_hop_exceeded", resume_state=state),
+        state,
+    )
 
 
 def run_orchestration(
@@ -70,6 +266,7 @@ def run_orchestration(
     context_provider: Optional[AgentContextProvider] = None,
     k: int = 10,
     on_step: Optional[Callable[[TraceStep], None]] = None,
+    hop_budget: int = MAX_HOP_COUNT,
 ) -> RunOutput:
     kg = kg or load_kg()
     provider = provider if provider is not None else make_provider()
@@ -104,103 +301,42 @@ def run_orchestration(
     log.info("orchestrator: langgraph state-graph, model=%s (%s)",
              getattr(provider, "model", "?"), getattr(provider, "name", "?"))
 
-    covered: set = set()
-    raw_history: List[str] = []
-    trace_summary: List[str] = []
-    incoming: Optional[IncomingEdge] = None
-    pending_edge = ("", "")   # (predicate, label) of the edge into the NEXT agent
-    current_agent = entry.entry_agent
-    final_status = "max_hop_exceeded"
+    state = LoopState(
+        kg=kg, query=query, provider=provider, domain=domain, brief_agent=brief_agent,
+        task=task, task_type_label=task_type_label, required=required, covered=set(),
+        raw_history=[], trace_summary=[], incoming=None, pending_edge=("", ""),
+        current_agent=entry.entry_agent, trace=trace, eval_log=eval_log,
+    )
+    return _run_from(state, on_step, hop_budget)
 
-    for hop in range(MAX_HOP_COUNT):
-        # ---- execute the domain agent + brief (§5, §12) --------------------
-        raw_output = domain.run(current_agent, task, raw_history)
-        brief = brief_agent.summarize(current_agent, raw_output)
-        raw_history.append(raw_output)
 
-        newly = _covered_required(kg, current_agent, required, covered)
-        covered.update(newly)
-        trace_summary.append(current_agent)
+def continue_orchestration(
+    state: LoopState,
+    additional_info: str,
+    *,
+    on_step: Optional[Callable[[TraceStep], None]] = None,
+    hop_budget: int = MAX_HOP_COUNT,
+) -> RunOutput:
+    """Resume a paused run with human-provided context folded in.
 
-        pred_used, pred_label = ("", "")
-        if incoming is not None:
-            pred_used, pred_label = pending_edge
+    Where the context lands depends on why the run paused:
 
-        step = TraceStep(
-            step_index=hop,
-            agent=current_agent,
-            capability_covered=", ".join(newly),
-            predicate_used=pred_used,
-            predicate_label=pred_label,
-            incoming_edge=incoming,
-            brief=brief,
-            attempt_count=0,
-            raw_output=raw_output,
-        )
-        trace.steps.append(step)
-        log.info("hop %d: %s  covers[%s]  (covered %d/%d)",
-                 hop, current_agent, ", ".join(newly) or "-",
-                 len(covered), len(required))
-
-        # ---- §7 coverage-complete safety net -------------------------------
-        if required.issubset(covered):
-            step.termination = Termination(True, "coverage_satisfied")
-            final_status = "completed"
-            log.success("coverage satisfied -> completed")
-            if on_step:
-                on_step(step)
-            break
-
-        # ---- §4 hop-decision session --------------------------------------
-        session = HopDecisionSession(
-            kg=kg, query=query, provider=provider, eval_log=eval_log,
-            session_id=f"{uuid.uuid4().hex[:8]}",
-        )
-        outcome = session.run(
-            task=task, task_type_label=task_type_label,
-            current_agent=current_agent, required=entry.required,
-            covered=covered, last_brief=brief, trace_summary=list(trace_summary),
-        )
-        step.attempt_count = outcome.attempt_count
-
-        if outcome.kind == OUT_TERMINATE:
-            step.termination = Termination(True, "llm_voluntary")
-            final_status = "voluntary_early_stop"
-            log.warning("orchestrator voluntarily terminated (early stop)")
-            if on_step:
-                on_step(step)
-            break
-        if outcome.kind == OUT_FAILED:
-            step.termination = Termination(True, "session_retry_exceeded")
-            final_status = "session_retry_exceeded"
-            log.error("session retry cap exceeded -> hard fail")
-            if on_step:
-                on_step(step)
-            break
-        if outcome.kind == OUT_COMMIT and outcome.agent:
-            incoming = IncomingEdge(from_agent=current_agent)
-            pending_edge = (outcome.predicate or "", outcome.label or "")
-            log.info("  -> commit %s  [%s]  (attempts=%d)",
-                     outcome.agent, outcome.predicate, outcome.attempt_count)
-            if on_step:
-                on_step(step)
-            current_agent = outcome.agent
-            continue
-        # Defensive: unknown outcome
-        final_status = "voluntary_early_stop"
-        if on_step:
-            on_step(step)
-        break
+      * ``awaiting_decision`` (voluntary_early_stop) — folded into
+        ``last_brief``, which feeds directly into the hop-decision session's
+        system prompt (see ``agents/prompts.py::orch_state_block``) as
+        "Brief from the current agent's output". The model re-decides with
+        the human's input in hand.
+      * otherwise (max_hop_exceeded) — folded into the tail of
+        ``raw_history``, which is what the *next* domain agent's context
+        provider reads (``LastOutputOnly`` shows only the most recent
+        entry, so appending here — not as a new list item — keeps it from
+        silently overriding the last agent's actual output).
+    """
+    note = f"\n\n[Additional information provided by clinical staff]\n{additional_info.strip()}"
+    if state.awaiting_decision:
+        state.last_brief = (state.last_brief or "") + note
+    elif state.raw_history:
+        state.raw_history[-1] = state.raw_history[-1] + note
     else:
-        # Loop exhausted MAX_HOP_COUNT without a terminal step.
-        if trace.steps:
-            trace.steps[-1].termination = Termination(True, "max_hop")
-            if on_step:
-                on_step(trace.steps[-1])
-        log.error("max hop count (%d) exceeded", MAX_HOP_COUNT)
-
-    trace.capabilities_covered = sorted(covered)
-    trace.final_status = final_status
-    trace.final_output = raw_history[-1] if raw_history else ""
-    return RunOutput(trace, eval_log, ok=(final_status == "completed"),
-                     reason=final_status)
+        state.raw_history.append(additional_info.strip())
+    return _run_from(state, on_step, hop_budget)

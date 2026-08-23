@@ -23,7 +23,7 @@ from typing import Dict, List, Optional
 
 from agents.llm import LLMProvider
 from kg.loader import KGData
-from orchestrator.loop import run_orchestration
+from orchestrator.loop import LoopState, continue_orchestration, run_orchestration
 from orchestrator.trace import EvalLog, Trace, TraceStep
 
 RUNS_DIR = Path(__file__).resolve().parents[2] / "runs"
@@ -40,13 +40,18 @@ def make_task_id(task: str) -> str:
 class TaskRun:
     task_id: str
     task: str
-    status: str = "running"  # running | completed | failed
+    status: str = "running"  # running | paused | completed | failed
     steps: List[dict] = field(default_factory=list)
     trace: Optional[Trace] = None
     eval_log: Optional[EvalLog] = None
     ok: Optional[bool] = None
     reason: Optional[str] = None
     event_queue: "queue.Queue" = field(default_factory=queue.Queue)
+    # Present only while status == "paused" — a live snapshot of everything
+    # needed to resume this run with more information (see orchestrator/loop.py).
+    # Not persisted to disk: it holds live Python objects (KG, provider) and
+    # only needs to survive for this server process's lifetime.
+    resume_state: Optional[LoopState] = None
 
     def to_summary(self) -> dict:
         return {
@@ -55,6 +60,7 @@ class TaskRun:
             "status": self.status,
             "final_status": self.trace.final_status if self.trace else None,
             "entry_agent": self.trace.entry_agent if self.trace else None,
+            "resumable": self.resume_state is not None,
         }
 
 
@@ -83,17 +89,49 @@ class TaskRegistry:
 
         try:
             out = run_orchestration(run.task, self._kg, provider=self._provider, on_step=on_step)
-            run.trace = out.trace
-            run.eval_log = out.eval_log
-            run.ok = out.ok
-            run.reason = out.reason
-            run.status = "completed"
-            self._persist(run)
+            self._apply_outcome(run, out)
         except Exception as exc:  # surfaced via the "done" SSE event, not raised
             run.status = "failed"
             run.reason = str(exc)
         finally:
             run.event_queue.put(None)  # sentinel: stream end
+
+    def continue_run(self, task_id: str, additional_info: str) -> bool:
+        """Resume a paused run with human-provided context. Returns False if
+        the task isn't known or isn't currently paused/resumable."""
+        run = self._runs.get(task_id)
+        if run is None or run.resume_state is None:
+            return False
+        state = run.resume_state
+        run.resume_state = None
+        run.status = "running"
+        threading.Thread(target=self._continue_execute, args=(run, state, additional_info), daemon=True).start()
+        return True
+
+    def _continue_execute(self, run: TaskRun, state: LoopState, additional_info: str) -> None:
+        def on_step(step: TraceStep) -> None:
+            payload = step.to_dict()
+            run.steps.append(payload)
+            run.event_queue.put(payload)
+
+        try:
+            out = continue_orchestration(state, additional_info, on_step=on_step)
+            self._apply_outcome(run, out)
+        except Exception as exc:
+            run.status = "failed"
+            run.reason = str(exc)
+        finally:
+            run.event_queue.put(None)
+
+    def _apply_outcome(self, run: TaskRun, out) -> None:
+        run.trace = out.trace
+        run.eval_log = out.eval_log
+        run.ok = out.ok
+        run.reason = out.reason
+        run.resume_state = out.resume_state
+        run.status = "paused" if out.resumable else "completed"
+        if not out.resumable:
+            self._persist(run)
 
     def _persist(self, run: TaskRun) -> None:
         assert run.trace is not None and run.eval_log is not None

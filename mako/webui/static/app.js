@@ -24,6 +24,12 @@ let currentTaskId = null;
 let currentEventSource = null;
 let requiredCount = 0;
 let coveredSet = new Set();
+// The SSE stream always replays every accumulated step from the start on a
+// fresh connection (correct for "load a page that's rendered nothing yet",
+// wrong for "just resumed via continue, timeline already has these
+// rendered") — dedupe by step_index rather than trying to make the backend
+// track per-client replay state.
+let renderedStepIndices = new Set();
 
 async function loadAgentMeta() {
   try {
@@ -84,9 +90,8 @@ function friendlyReason(reason) {
 // Short status word for the sidebar case list (not a full sentence).
 function shortStatus(status, finalStatus) {
   if (status === "running") return "In progress";
-  if (finalStatus === "voluntary_early_stop" || finalStatus === "llm_voluntary") return "Needs input";
-  if (finalStatus === "max_hop_exceeded") return "Needs review";
-  if (!finalStatus) return "Completed";
+  if (status === "paused") return finalStatus === "max_hop_exceeded" ? "Needs review" : "Needs input";
+  if (status === "failed" || finalStatus === "session_retry_exceeded") return "Stopped";
   return "Completed";
 }
 
@@ -212,56 +217,98 @@ function resetTimeline(task) {
   caseView.classList.remove("hidden");
   requiredCount = 0;
   coveredSet = new Set();
+  renderedStepIndices = new Set();
   updateCoverage([], []);
 }
 
-function appendTerminationBanner(reason, complete) {
+// A pause banner + (if resumable) a "continue this case" form, as one
+// removable unit so resuming can cleanly clear it before new steps stream in.
+function appendTerminationBanner(taskId, reason, complete, resumable) {
   const li = document.createElement("li");
   li.className = "step terminal";
   const dot = document.createElement("div");
   dot.className = "step-dot";
   li.appendChild(dot);
+
   const banner = document.createElement("div");
   banner.className = "termination-banner" + (complete ? " complete" : "");
   banner.textContent = complete
     ? "All required clinical steps for this case are complete."
     : friendlyReason(reason);
   li.appendChild(banner);
+
+  if (resumable && !complete) {
+    const panel = document.createElement("div");
+    panel.className = "continue-panel";
+    panel.innerHTML = `
+      <label class="continue-label">Provide additional information to continue this case</label>
+      <textarea class="continue-input" rows="3" placeholder="e.g. lab results just came back, a specialist is unavailable, clarify the patient's history…"></textarea>
+      <button class="btn-secondary continue-btn">Continue routing</button>
+      <p class="continue-hint"></p>
+    `;
+    const textarea = panel.querySelector(".continue-input");
+    const btn = panel.querySelector(".continue-btn");
+    const hint = panel.querySelector(".continue-hint");
+    btn.addEventListener("click", async () => {
+      const info = textarea.value.trim();
+      if (!info) return;
+      btn.disabled = true;
+      hint.textContent = "Resuming…";
+      try {
+        const res = await fetch(`/api/tasks/${taskId}/continue`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ additional_info: info }),
+        });
+        if (!res.ok) throw new Error("continue failed");
+        li.remove(); // clear this banner+panel; new steps stream in below
+        setStatus(caseStatus, "running", "Routing…");
+        subscribeStream(taskId);
+      } catch (e) {
+        hint.textContent = "Could not resume this case — please check the routing service is running.";
+        btn.disabled = false;
+      }
+    });
+    li.appendChild(panel);
+  }
+
   timelineEl.appendChild(li);
 }
 
-function watchTask(taskId, task, requiredCaps) {
-  currentTaskId = taskId;
+// Subscribes (or re-subscribes, after a continue) to a task's SSE stream.
+// Never resets the timeline itself — callers decide when a fresh case
+// starts vs. an existing one resuming.
+function subscribeStream(taskId) {
   if (currentEventSource) currentEventSource.close();
-  resetTimeline(task);
-  requiredCount = (requiredCaps || []).length;
-  setStatus(caseStatus, "running", "Routing…");
-
   const es = new EventSource(`/api/tasks/${taskId}/stream`);
   currentEventSource = es;
 
   es.onmessage = (evt) => {
     const step = JSON.parse(evt.data);
+    if (renderedStepIndices.has(step.step_index)) return; // already on screen
+    renderedStepIndices.add(step.step_index);
     coveredSet.add(step.capability_covered);
-    updateCoverage([...coveredSet], requiredCaps || [...coveredSet]);
+    updateCoverage([...coveredSet], [...coveredSet]); // refined below on "done"
     timelineEl.appendChild(renderStep(step, false));
     timelineEl.scrollTop = timelineEl.scrollHeight;
   };
 
   es.addEventListener("done", async (evt) => {
     const data = JSON.parse(evt.data);
-    // Required-capability count only becomes known once the Trace is
-    // finalized — fetch it now for an accurate final coverage bar.
-    let required = requiredCaps || [];
+    let required = [];
     try {
       const full = await fetch(`/api/tasks/${taskId}`).then((r) => r.json());
-      required = (full.trace && full.trace.capabilities_required) || required;
+      required = (full.trace && full.trace.capabilities_required) || [];
       const covered = (full.trace && full.trace.capabilities_covered) || [...coveredSet];
       updateCoverage(covered, required);
     } catch (e) { /* keep the running-state count if this fails */ }
     const complete = required.length > 0 && coveredSet.size >= required.length;
-    setStatus(caseStatus, complete ? "complete" : "input", complete ? "Complete" : "Needs input");
-    appendTerminationBanner(data.reason, complete);
+    setStatus(
+      caseStatus,
+      complete ? "complete" : (data.resumable ? "input" : "error"),
+      complete ? "Complete" : (data.resumable ? "Needs input" : "Stopped"),
+    );
+    appendTerminationBanner(taskId, data.reason, complete, !!data.resumable);
     es.close();
     refreshCaseList();
   });
@@ -272,6 +319,14 @@ function watchTask(taskId, task, requiredCaps) {
   });
 }
 
+function watchTask(taskId, task, requiredCaps) {
+  currentTaskId = taskId;
+  resetTimeline(task);
+  requiredCount = (requiredCaps || []).length;
+  setStatus(caseStatus, "running", "Routing…");
+  subscribeStream(taskId);
+}
+
 async function loadTask(taskId) {
   const data = await fetch(`/api/tasks/${taskId}`).then((r) => r.json());
   resetTimeline(data.task);
@@ -280,14 +335,21 @@ async function loadTask(taskId) {
   requiredCount = required.length;
   coveredSet = new Set(covered);
   updateCoverage(covered, required);
-  (data.steps || []).forEach((step) => timelineEl.appendChild(renderStep(step, false)));
+  (data.steps || []).forEach((step) => {
+    renderedStepIndices.add(step.step_index);
+    timelineEl.appendChild(renderStep(step, false));
+  });
   const complete = required.length > 0 && covered.length >= required.length;
   if (data.status === "running") {
     setStatus(caseStatus, "running", "Routing…");
-    watchTask(taskId, data.task, required);
+    subscribeStream(taskId);
   } else {
-    setStatus(caseStatus, complete ? "complete" : "input", complete ? "Complete" : "Needs input");
-    appendTerminationBanner(data.reason, complete);
+    setStatus(
+      caseStatus,
+      complete ? "complete" : (data.resumable ? "input" : "error"),
+      complete ? "Complete" : (data.resumable ? "Needs input" : "Stopped"),
+    );
+    appendTerminationBanner(taskId, data.reason, complete, !!data.resumable);
   }
   highlightActiveCase(taskId);
 }

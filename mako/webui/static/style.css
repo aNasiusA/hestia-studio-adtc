@@ -307,3 +307,44 @@ textarea#case-input:focus { outline: 2px solid var(--teal); outline-offset: -1px
   color: var(--amber);
 }
 .termination-banner.complete { background: var(--green-tint); color: var(--green); }
+
+.continue-panel {
+  margin-top: 8px;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.continue-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--ink-soft);
+  margin-bottom: 7px;
+}
+.continue-input {
+  width: 100%;
+  resize: vertical;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--ink);
+  background: var(--bg);
+}
+.continue-input:focus { outline: 2px solid var(--teal); outline-offset: -1px; border-color: var(--teal); }
+.btn-secondary {
+  margin-top: 8px;
+  padding: 7px 13px;
+  background: var(--teal-tint);
+  color: var(--teal-dark);
+  border: 1px solid var(--teal);
+  border-radius: 5px;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.btn-secondary:hover { background: var(--teal); color: #fff; }
+.btn-secondary:disabled { background: var(--line); color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; }
+.continue-hint { margin: 6px 0 0; font-size: 11px; color: var(--red); min-height: 1em; }

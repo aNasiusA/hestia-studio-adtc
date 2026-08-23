@@ -70,6 +70,10 @@ class TaskRequest(BaseModel):
     task: str
 
 
+class ContinueRequest(BaseModel):
+    additional_info: str
+
+
 @app.post("/api/tasks")
 def create_task(req: TaskRequest) -> dict:
     task = req.task.strip()
@@ -77,6 +81,17 @@ def create_task(req: TaskRequest) -> dict:
         raise HTTPException(400, "task must not be empty")
     task_id = _registry.start(task)
     return {"task_id": task_id}
+
+
+@app.post("/api/tasks/{task_id}/continue")
+def continue_task(task_id: str, req: ContinueRequest) -> dict:
+    info = req.additional_info.strip()
+    if not info:
+        raise HTTPException(400, "additional_info must not be empty")
+    ok = _registry.continue_run(task_id, info)
+    if not ok:
+        raise HTTPException(409, "task is not currently paused/resumable")
+    return {"status": "resumed"}
 
 
 @app.get("/api/tasks")
@@ -96,6 +111,7 @@ def get_task(task_id: str) -> dict:
             "trace": run.trace.to_dict() if run.trace else None,
             "eval_log": run.eval_log.to_list() if run.eval_log else None,
             "reason": run.reason,
+            "resumable": run.resume_state is not None,
         }
 
     trace_path = RUNS_DIR / f"{task_id}_trace.json"
@@ -112,6 +128,9 @@ def get_task(task_id: str) -> dict:
         "trace": trace,
         "eval_log": eval_log,
         "reason": trace.get("final_status"),
+        # On-disk history is always a finished run (paused runs only live
+        # in-memory) — never resumable once it's been written to disk.
+        "resumable": False,
     }
 
 
@@ -130,7 +149,7 @@ async def stream_task(task_id: str) -> StreamingResponse:
             trace = json.loads(trace_path.read_text())
             for step in trace.get("steps", []):
                 yield f"data: {json.dumps(step)}\n\n".encode()
-            done = {"status": "completed", "reason": trace.get("final_status")}
+            done = {"status": "completed", "reason": trace.get("final_status"), "resumable": False}
             yield f"event: done\ndata: {json.dumps(done)}\n\n".encode()
             return
 
@@ -139,13 +158,13 @@ async def stream_task(task_id: str) -> StreamingResponse:
         for step in list(run.steps):
             yield f"data: {json.dumps(step)}\n\n".encode()
         if run.status != "running":
-            done = {"status": run.status, "reason": run.reason}
+            done = {"status": run.status, "reason": run.reason, "resumable": run.resume_state is not None}
             yield f"event: done\ndata: {json.dumps(done)}\n\n".encode()
             return
         while True:
             item = await run_in_threadpool(run.event_queue.get)
             if item is None:
-                done = {"status": run.status, "reason": run.reason}
+                done = {"status": run.status, "reason": run.reason, "resumable": run.resume_state is not None}
                 yield f"event: done\ndata: {json.dumps(done)}\n\n".encode()
                 return
             yield f"data: {json.dumps(item)}\n\n".encode()

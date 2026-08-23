@@ -29,9 +29,10 @@ If either server isn't running, tell me and I'll restart them.
 *(GitHub repo page)*
 
 > "Cloud-hosted LLMs need API fees, stable fiber, and constant electricity —
-> three things a lot of African clinics can't rely on. This is HestiaHealth:
-> a real multi-agent clinical AI system I built — called MAKO — with its
-> decision-making running entirely offline, on an 8 gigabyte budget laptop."
+> three things a lot of African clinics can't rely on. This is HestiaHealth
+> — an app I built on top of MAKO, a multi-agent clinical AI system, with
+> its decision-making running entirely offline, on an 8 gigabyte budget
+> laptop."
 
 ## 0:15 – 0:35 — How the whole system works (graph explorer)
 
@@ -100,8 +101,8 @@ cat submission.json | python3 -m json.tool | grep -A5 throughput
 
 > "The repo has the full report, the benchmarks, and MAKO's actual
 > orchestrator code — not a description of it, the real thing, verified
-> working. This is HestiaHealth: MAKO's autonomous clinical routing,
-> running entirely offline, on hardware people already have."
+> working. This is HestiaHealth, built on MAKO: autonomous clinical
+> routing, running entirely offline, on hardware people already have."
 
 ## Stop recording
 

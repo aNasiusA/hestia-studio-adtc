@@ -92,6 +92,38 @@ re-emitting the same already-shown step on every re-decision, and
 separately the SSE stream always replays every accumulated step on a
 fresh connection — both needed de-duplication, one on each side).
 
+## Knowledge graph explorer (`graph.html`)
+
+A second page — linked from the console's top bar — for explaining the
+system rather than routing a case. The raw graph behind `/api/kg/graph`
+(303 nodes, 529 edges across Domain/Agent/Capability/Tool/TaskType/Handoff
+node types) is unreadable dumped as one hairball, so this renders it at
+two levels instead:
+
+- **All domains** — 12 domain nodes sized by agent count, connected by
+  aggregated cross-domain handoff weight. Click one to drill in.
+- **A domain's detail** — that domain's actual agents and the handoffs
+  between them, plus a sidebar listing what it refers out to / receives
+  from other domains.
+- **All 71 agents** — every agent at once, colour-coded by domain, every
+  handoff edge (solid within a domain, dashed across domains) — the "show
+  me the whole thing" view, with a full text roster in the sidebar as a
+  readable fallback to the graph itself.
+
+Clicking any agent (in the graph or the sidebar list) shows its full
+detail: capabilities, tools, and every handoff in and out.
+
+Built on the same vendored, unchanged `GET /api/kg/graph` /
+`GET /api/agents` / `GET /api/agents/{id}` endpoints as MAKO's original
+webui — only the frontend is new. Uses Cytoscape.js, vendored locally at
+`static/vendor/cytoscape.min.js` rather than pulled from a CDN, so this
+page works offline too and doesn't depend on a network request succeeding
+mid-demo.
+
+This page is a presentation/explainer aid — it is not part of the
+offline-required, judged model runtime (nothing about ADTC's scoring
+touches it), but there's no reason it shouldn't work offline anyway.
+
 ## Running it
 
 ```bash

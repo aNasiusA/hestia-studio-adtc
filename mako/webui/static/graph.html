@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HestiaHealth — Knowledge Graph</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="graph.css" />
+<script src="vendor/cytoscape.min.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="brand-mark">H</span>
+    <div class="brand-text">
+      <span class="brand-name">HestiaHealth</span>
+      <span class="brand-sub">Knowledge Graph</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <a class="nav-link" href="/">&larr; Back to console</a>
+  </div>
+</header>
+
+<div class="graph-app">
+  <aside class="graph-sidebar">
+    <section class="panel">
+      <h2 class="panel-title">View</h2>
+      <button id="btn-overview" class="btn-secondary graph-nav-btn active">All domains</button>
+      <button id="btn-all-agents" class="btn-secondary graph-nav-btn">All 71 agents</button>
+      <p class="hint" id="view-hint">12 clinical domains, 71 agents, 135 possible handoffs — this is the graph MAKO's orchestrator reasons over at every routing decision. Click a domain to see its agents and handoffs.</p>
+    </section>
+
+    <section class="panel panel-grow" id="detail-panel">
+      <h2 class="panel-title" id="detail-title">Select a node</h2>
+      <div id="detail-body" class="detail-body">
+        <p class="hint">Click any domain or agent to see its detail here.</p>
+      </div>
+    </section>
+  </aside>
+
+  <main class="graph-main">
+    <div id="cy"></div>
+    <div class="graph-legend" id="legend"></div>
+  </main>
+</div>
+
+<script src="graph.js"></script>
+</body>
+</html>

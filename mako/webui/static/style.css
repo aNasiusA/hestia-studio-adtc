@@ -287,11 +287,6 @@ textarea#case-input:focus { outline: 2px solid var(--teal); outline-offset: -1px
   padding: 10px 11px;
 }
 
-.attempt-note {
-  margin-top: 7px;
-  font-size: 11px;
-  color: var(--ink-faint);
-}
 
 .termination-banner {
   margin-top: 4px;

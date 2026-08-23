@@ -41,6 +41,55 @@ function labelOf(agentId) {
   return (agentMeta[agentId] && agentMeta[agentId].label) || agentId.replace(/_/g, " ");
 }
 
+// Internal knowledge-graph capability ids arrive smash-cased with a "cap_"
+// prefix (e.g. "cap_PlanCardiacTreatment") — not something to show a
+// clinician as-is. Strip the prefix and space out the words.
+function humanizeCapability(capId) {
+  if (!capId) return "";
+  const bare = capId.replace(/^cap_/, "");
+  return bare
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .trim();
+}
+
+// The graph's handoff predicates are a fixed, small vocabulary — map them to
+// plain verbs instead of showing the internal predicate name or its full
+// technical description (which includes bracketed engineering tags like
+// "(stage_complete)").
+const PREDICATE_VERBS = {
+  delegatesTo: "delegated to",
+  consults: "consulted",
+  escalatesTo: "escalated to",
+  refersTo: "referred to",
+  returnsTo: "returned the case to",
+};
+function friendlyPredicate(predicateId) {
+  return PREDICATE_VERBS[predicateId] || "handed off to";
+}
+
+// Termination reasons come back as internal status codes — translate to
+// something a clinical user would actually read.
+function friendlyReason(reason) {
+  const map = {
+    voluntary_early_stop: "Routing paused — additional information is needed before the next step can be determined.",
+    llm_voluntary: "Routing paused — additional information is needed before the next step can be determined.",
+    max_hop_exceeded: "Routing incomplete — this case reached the handoff limit and should be reviewed manually.",
+  };
+  if (map[reason]) return map[reason];
+  if (!reason) return "Routing paused — awaiting further input.";
+  return "Routing stopped — " + reason.replace(/_/g, " ") + ".";
+}
+
+// Short status word for the sidebar case list (not a full sentence).
+function shortStatus(status, finalStatus) {
+  if (status === "running") return "In progress";
+  if (finalStatus === "voluntary_early_stop" || finalStatus === "llm_voluntary") return "Needs input";
+  if (finalStatus === "max_hop_exceeded") return "Needs review";
+  if (!finalStatus) return "Completed";
+  return "Completed";
+}
+
 function setStatus(pillEl, kind, text) {
   pillEl.className = "status-pill " + (
     { running: "status-running", input: "status-input", complete: "status-ok", error: "status-error" }[kind] || ""
@@ -75,14 +124,13 @@ function renderStep(step, isTerminal) {
   if (step.incoming_edge) {
     const h = document.createElement("div");
     h.className = "handoff-line";
-    h.innerHTML = `${labelOf(step.incoming_edge.from_agent)} <span class="arrow">&#8594;</span> ${labelOf(step.agent)}` +
-      (step.predicate_label ? ` &nbsp;·&nbsp; ${step.predicate_label}` : "");
+    h.innerHTML = `${labelOf(step.incoming_edge.from_agent)} ${friendlyPredicate(step.predicate_used)} <b>${labelOf(step.agent)}</b>`;
     card.appendChild(h);
   }
 
   const cap = document.createElement("div");
   cap.className = "capability-line";
-  cap.innerHTML = `Covers <b>${(step.capability_covered || "").replace(/^cap_/, "")}</b>`;
+  cap.innerHTML = `Step completed: <b>${humanizeCapability(step.capability_covered)}</b>`;
   card.appendChild(cap);
 
   if (step.brief) {
@@ -90,13 +138,6 @@ function renderStep(step, isTerminal) {
     brief.className = "step-brief";
     brief.textContent = step.brief;
     card.appendChild(brief);
-  }
-
-  if (step.attempt_count > 1) {
-    const note = document.createElement("div");
-    note.className = "attempt-note";
-    note.textContent = `Accepted on attempt ${step.attempt_count} — ${step.attempt_count - 1} prior proposal(s) rejected by the graph validator.`;
-    card.appendChild(note);
   }
 
   li.appendChild(card);
@@ -118,7 +159,7 @@ function updateCoverage(covered, required) {
   coverageFill.classList.remove("indeterminate");
   const pct = Math.round((covered.length / required.length) * 100);
   coverageFill.style.width = pct + "%";
-  coverageCount.textContent = `${covered.length} / ${required.length}`;
+  coverageCount.textContent = `${covered.length} of ${required.length} clinical steps completed`;
 }
 
 function resetTimeline(task) {
@@ -140,8 +181,8 @@ function appendTerminationBanner(reason, complete) {
   const banner = document.createElement("div");
   banner.className = "termination-banner" + (complete ? " complete" : "");
   banner.textContent = complete
-    ? "All required capabilities covered — case handoff chain complete."
-    : `Orchestrator stopped: ${reason || "awaiting further input"}.`;
+    ? "All required clinical steps for this case are complete."
+    : friendlyReason(reason);
   li.appendChild(banner);
   timelineEl.appendChild(li);
 }
@@ -227,7 +268,7 @@ async function refreshCaseList() {
     li.dataset.taskId = t.task_id;
     li.innerHTML =
       `<div class="case-item-task">${t.task}</div>` +
-      `<div class="case-item-meta">${t.entry_agent ? labelOf(t.entry_agent) : "…"} · ${t.final_status || t.status}</div>`;
+      `<div class="case-item-meta">${t.entry_agent ? labelOf(t.entry_agent) : "…"} · ${shortStatus(t.status, t.final_status)}</div>`;
     li.addEventListener("click", () => loadTask(t.task_id));
     caseList.appendChild(li);
   });
@@ -238,7 +279,7 @@ async function submitCase() {
   const task = caseInput.value.trim();
   if (!task) return;
   submitBtn.disabled = true;
-  submitHint.textContent = "Submitting to the orchestrator…";
+  submitHint.textContent = "Submitting case…";
   try {
     const { task_id } = await fetch("/api/tasks", {
       method: "POST",
@@ -248,11 +289,11 @@ async function submitCase() {
     caseInput.value = "";
     watchTask(task_id, task, []);
     refreshCaseList();
+    submitHint.textContent = "Routes through the clinical decision engine, entirely offline.";
   } catch (e) {
-    submitHint.textContent = "Could not reach the local orchestrator — is the backend running?";
+    submitHint.textContent = "Could not reach the routing service — please check it's running.";
   } finally {
     submitBtn.disabled = false;
-    submitHint.textContent = "Routes through MAKO's knowledge-graph orchestrator, running entirely offline.";
   }
 }
 

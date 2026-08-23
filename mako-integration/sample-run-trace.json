@@ -23,14 +23,14 @@
       "predicate_used": "",
       "predicate_label": "",
       "incoming_edge": null,
-      "brief": "ACCOMPLISHMENT: Identified nonspecific T wave inversions in the patient's EKG, necessitating a cardiology consultation for further assessment.\nCURRENT STATUS SIGNAL: Needs-input - specific cardiology evaluation is required.\nNEXT STEP: Hand the case to the Cardiology Consultation agent to request the consultation.",
+      "brief": "The Cardiology TreatmentPlanning agent completed a thorough review of the patient's medical history and recent labs, identifying elevated troponin levels and an irregular heart rhythm. The current status signal is urgent, as the patient likely has myocardial infarction. Next, the case calls for an Agent focused on Acute Care Management to develop a treatment plan for myocardial infarction.",
       "attempt_count": 3,
-      "raw_output": "I reviewed the patient's EHRSystem, noting the triage flags for possible cardiac involvement. The patient's EKG showed nonspecific T wave inversions, which warrants further evaluation. Current status: Cardiology consultation requested to assess further.",
+      "raw_output": "I reviewed the patient's EHR to assess their medical history and recent labs. Key findings included elevated troponin levels and an irregular heart rhythm. The patient is now in the cardiology treatment planning phase, with a high likelihood of myocardial infarction.",
       "termination": {
         "is_terminal": false,
         "reason": null
       },
-      "timestamp": "2026-08-23T16:16:27.155916+00:00"
+      "timestamp": "2026-08-23T16:37:48.820033+00:00"
     },
     {
       "step_index": 1,
@@ -41,15 +41,15 @@
       "incoming_edge": {
         "from_agent": "Cardiology_TreatmentPlanning"
       },
-      "brief": "Accomplished: Confirmed nonspecific T wave inversions and recommended a cardiology consultation.\nCurrent status: Needs-input (for cardiology consultation details and patient consent).\nNext step: Request patient consent for the cardiology consultation and confirm the date.",
+      "brief": "Accomplished: The agent identified a myocardial infarction suspicion based on recent symptoms and lab results. Current status: Urgent. Next step: Hand the case to the EmergencyCardiologyPCI agent for immediate intervention planning.",
       "attempt_count": 1,
-      "raw_output": "I reviewed the patient's EHRSystem and confirmed the nonspecific T wave inversions on the EKG. These findings, in conjunction with the triage flags, suggest a need for cardiac work-up. I have requested a cardiology consultation to assess the patient further. Current status: Cardiology consultation scheduled.",
+      "raw_output": "I conducted a follow-up on the patient's EHR, noting the recent chest pain, elevated troponin levels, and irregular heart rhythm. The current status is that the patient is strongly suspected of having a myocardial infarction, and the cardiology team is planning for immediate intervention, which includes urgent coronary angiography and possible PCI.",
       "termination": {
         "is_terminal": true,
         "reason": "llm_voluntary"
       },
-      "timestamp": "2026-08-23T16:16:31.376020+00:00"
+      "timestamp": "2026-08-23T16:37:53.466467+00:00"
     }
   ],
-  "final_output": "I reviewed the patient's EHRSystem and confirmed the nonspecific T wave inversions on the EKG. These findings, in conjunction with the triage flags, suggest a need for cardiac work-up. I have requested a cardiology consultation to assess the patient further. Current status: Cardiology consultation scheduled."
+  "final_output": "I conducted a follow-up on the patient's EHR, noting the recent chest pain, elevated troponin levels, and irregular heart rhythm. The current status is that the patient is strongly suspected of having a myocardial infarction, and the cardiology team is planning for immediate intervention, which includes urgent coronary angiography and possible PCI."
 }

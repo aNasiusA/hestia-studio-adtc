@@ -2,14 +2,15 @@
 
 This directory contains real, unedited evidence that MAKO's actual
 orchestrator — not a mock, not a hand-written prompt imitating it — runs
-end-to-end against this submission's model.
+end-to-end against this submission's model. The orchestrator code itself is
+vendored (trimmed of unrelated research bloat) at [`../mako/`](../mako).
 
 ## What was run
 
-MAKO's `v3-langraph` orchestrator (a LangGraph `StateGraph`-driven ReAct loop
-that decides one hop at a time, validating each decision against a
-knowledge-graph edge before committing) lives in a separate repository — this
-project's final-year engineering thesis. Its `.env` was pointed at:
+[`../mako/orchestrator/`](../mako/orchestrator) is MAKO's `v3-langraph`
+orchestrator — a LangGraph `StateGraph`-driven ReAct loop that decides one
+hop at a time, validating each decision against a knowledge-graph edge
+before committing. `../mako/.env` points it at:
 
 ```
 KG_LLM_PROVIDER=openai
@@ -30,10 +31,11 @@ llama-server -m model/qwen2.5-3b-instruct-q4_k_m.gguf --port 8811 -t 4 -c 4096
 `KG_EMBED_PROVIDER=local` uses MAKO's pure-Python hashing embedder (no
 network, no extra model) so the whole run is fully offline end to end.
 
-Then, from MAKO's `v3-langraph/` directory:
+Then, from `mako/`, with its own fresh virtual environment:
 
 ```bash
-python -m orchestrator.run \
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/python -m orchestrator.run \
   "A 54-year-old patient presents with chest pain; triage flags possible cardiac involvement" \
   --json-only
 ```
@@ -41,17 +43,19 @@ python -m orchestrator.run \
 ## What happened (unedited log)
 
 ```
-16:16:25 INFO     [entry_run] building recall index (provider=local, backend=flat)
-16:16:25 INFO     [loop] task='A 54-year-old patient presents with chest pain; triage flags possible cardiac involvement'
-16:16:25 SUCCESS  [loop] process=task_ChestPainWorkup  entry=Cardiology_TreatmentPlanning  required=cap_AssessChestPain, cap_AssessPatientCondition, cap_ConductFollowUp, cap_InterpretECG, cap_InterpretEcho, cap_PlanCardiacTreatment
-16:16:25 INFO     [loop] orchestrator: langgraph state-graph, model=qwen2.5-3b-instruct-q4_k_m (openai)
-16:16:27 INFO     [loop] hop 0: Cardiology_TreatmentPlanning  covers[cap_PlanCardiacTreatment]  (covered 1/6)
-16:16:29 INFO     [loop]   -> commit Cardiology_PostCareFollowUp  [delegatesTo]  (attempts=3)
-16:16:31 INFO     [loop] hop 1: Cardiology_PostCareFollowUp  covers[cap_ConductFollowUp]  (covered 2/6)
-16:16:31 WARNING  [loop] orchestrator voluntarily terminated (early stop)
+16:37:46 INFO     [entry_run] building recall index (provider=local, backend=flat)
+16:37:46 INFO     [loop] task='A 54-year-old patient presents with chest pain; triage flags possible cardiac involvement'
+16:37:46 SUCCESS  [loop] process=task_ChestPainWorkup  entry=Cardiology_TreatmentPlanning  required=cap_AssessChestPain, cap_AssessPatientCondition, cap_ConductFollowUp, cap_InterpretECG, cap_InterpretEcho, cap_PlanCardiacTreatment
+16:37:46 INFO     [loop] orchestrator: langgraph state-graph, model=qwen2.5-3b-instruct-q4_k_m (openai)
+16:37:48 INFO     [loop] hop 0: Cardiology_TreatmentPlanning  covers[cap_PlanCardiacTreatment]  (covered 1/6)
+16:37:51 INFO     [loop]   -> commit Cardiology_PostCareFollowUp  [delegatesTo]  (attempts=3)
+16:37:53 INFO     [loop] hop 1: Cardiology_PostCareFollowUp  covers[cap_ConductFollowUp]  (covered 2/6)
+16:37:53 WARNING  [loop] orchestrator voluntarily terminated (early stop)
 ```
 
-Total wall time: **~6 seconds**, entirely local, zero network calls.
+Total wall time: **~7 seconds**, run from the trimmed, self-contained
+`mako/` folder with its own fresh virtual environment — not the original
+384MB development checkout — entirely local, zero network calls.
 
 The orchestrator selected an entry agent from the knowledge graph
 (`Cardiology_TreatmentPlanning`), made a real hop decision backed by a
@@ -74,7 +78,9 @@ handoff edge used, and the termination reason.
 
 ADTC's automated profiler (`adtc-profiler`) only benchmarks the raw `.gguf`
 model directly via `llama-bench` — it has no hook to execute a submission's
-own application code (see `REPORT.md`). This directory exists to make the
-report's claims about MAKO checkable: this is not a description of a
-capability, it is the literal, reproducible output of running MAKO's
-production orchestrator code against this submission's exact model file.
+own application code (see `REPORT.md`). This directory, and the vendored
+`../mako/` orchestrator it documents, exist to make the report's claims
+checkable: this is not a description of a capability, it is the literal,
+reproducible output of running MAKO's own orchestrator code — copied into
+this repo, stripped of unrelated research history — against this
+submission's exact model file.

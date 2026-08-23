@@ -1,0 +1,47 @@
+# core (always required)
+rdflib>=7.0.0
+
+# --- Semantic recall (embeddings + vector search) ---
+# Default is fully offline: `local` hashing embedder + pure-Python `flat`
+# vector index (no deps beyond rdflib). Everything below is OPTIONAL and only
+# needed to swap the provider/backend via env vars (see config.py):
+#   KG_EMBED_PROVIDER=openai|ollama   -> needs `openai`
+#   KG_EMBED_PROVIDER=gemini          -> needs `google-genai`
+#   KG_VECTOR_BACKEND=numpy           -> needs `numpy`
+#   KG_VECTOR_BACKEND=faiss           -> needs `faiss-cpu` (+ numpy)
+numpy>=1.24        # optional: numpy vector backend / faiss
+faiss-cpu>=1.7     # optional: FAISS vector backend
+
+# --- LangChain / LangGraph / LangSmith (the migration core) ---
+# Every model call runs through a LangChain chat-model class so LangSmith can
+# trace it (plan.md), and the orchestrator's hop-decision loop is a LangGraph
+# StateGraph. These are REQUIRED for this variant.
+langchain-core>=0.3.60
+langgraph>=0.6.0
+langsmith>=0.4.0                 # call-level tracing (opt-in via LANGSMITH_TRACING)
+
+# --- LLM execution providers (LangChain integration per provider) ---
+# A real LLM provider is REQUIRED to run the orchestrator — there is no mock/
+# offline execution path. Install the integration matching KG_LLM_PROVIDER; if
+# none is configured (or the service fails), the run raises instead of faking it.
+langchain-anthropic>=0.3.0       # KG_LLM_PROVIDER=anthropic (Claude)
+langchain-openai>=0.3.0          # KG_LLM_PROVIDER=openai|ollama|local (OpenAI-compatible)
+langchain-google-genai>=2.1.0    # KG_LLM_PROVIDER=gemini
+
+# Embedding recall still uses the raw provider SDKs (unchanged from v3):
+openai>=1.30.0         # KG_EMBED_PROVIDER=openai|ollama
+google-genai>=0.5.0    # KG_EMBED_PROVIDER=gemini
+
+# --- LangSmith tracing (optional observability) ---
+# Set in .env to export nested call traces (nodes, latency, tokens, retries):
+#   LANGSMITH_TRACING=true
+#   LANGSMITH_API_KEY=<your LangSmith key>
+#   LANGSMITH_PROJECT=kg-orchestrator-v3   (optional; defaulted when tracing on)
+# (the older LANGCHAIN_TRACING_V2 / LANGCHAIN_API_KEY / LANGCHAIN_PROJECT names
+#  are still accepted as aliases)
+# Tracing being off never blocks a run — it is call-level observability only and
+# does NOT replace the Trace/EvalLog domain records (plan.md).
+
+# Visualization frontend uses Cytoscape.js from a CDN (no Python dep).
+
+# Tests: pytest

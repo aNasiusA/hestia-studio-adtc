@@ -1,0 +1,1797 @@
+@prefix kg: <http://example.org/healthkg#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+kg:Agent a rdfs:Class .
+
+kg:Capability a rdfs:Class .
+
+kg:ConsultHandoff a rdfs:Class ;
+    rdfs:label "Consult" ;
+    kg:isTerminal false ;
+    rdfs:subClassOf kg:HandoffEdge .
+
+kg:DelegationHandoff a rdfs:Class ;
+    rdfs:label "Delegation" ;
+    kg:isTerminal true ;
+    rdfs:subClassOf kg:HandoffEdge .
+
+kg:EscalationHandoff a rdfs:Class ;
+    rdfs:label "Escalation" ;
+    kg:isTerminal true ;
+    rdfs:subClassOf kg:HandoffEdge .
+
+kg:HandoffEdge a rdfs:Class .
+
+kg:ReferralHandoff a rdfs:Class ;
+    rdfs:label "Referral" ;
+    kg:isTerminal true ;
+    rdfs:subClassOf kg:HandoffEdge .
+
+kg:ReturnHandoff a rdfs:Class ;
+    rdfs:label "Return" ;
+    kg:isTerminal true ;
+    rdfs:subClassOf kg:HandoffEdge .
+
+kg:TaskType a rdfs:Class .
+
+kg:Tool a rdfs:Class .
+
+kg:Cardiology_CathLabProcedure a kg:Agent ;
+    rdfs:label "Cardiology CathLabProcedure" ;
+    kg:handles kg:cap_PerformCatheterization ;
+    kg:owns kg:tool_CathLabSystem ;
+    kg:specialty "Cardiology" .
+
+kg:Cardiology_StressTestAnalysis a kg:Agent ;
+    rdfs:label "Cardiology StressTestAnalysis" ;
+    kg:handles kg:cap_InterpretStressTest ;
+    kg:owns kg:tool_StressTestSystem ;
+    kg:specialty "Cardiology" .
+
+kg:LabPathology_ResultReporting a kg:Agent ;
+    rdfs:label "LabPathology ResultReporting" ;
+    kg:handles kg:cap_ReportLabResults ;
+    kg:owns kg:tool_EHRSystem,
+        kg:tool_LabResultsAPI ;
+    kg:specialty "LabPathology" .
+
+kg:LabPathology_SpecimenIntake a kg:Agent ;
+    rdfs:label "LabPathology SpecimenIntake" ;
+    kg:handles kg:cap_ReceiveSpecimen ;
+    kg:owns kg:tool_LabResultsAPI ;
+    kg:specialty "LabPathology" .
+
+kg:Neurology_EEGInterpretation a kg:Agent ;
+    rdfs:label "Neurology EEGInterpretation" ;
+    kg:handles kg:cap_InterpretEEG ;
+    kg:owns kg:tool_EEGSystem ;
+    kg:specialty "Neurology" .
+
+kg:Neurology_NeuroExam a kg:Agent ;
+    rdfs:label "Neurology NeuroExam" ;
+    kg:handles kg:cap_ConductNeuroExam ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Neurology" .
+
+kg:Oncology_RadiationPlanning a kg:Agent ;
+    rdfs:label "Oncology RadiationPlanning" ;
+    kg:handles kg:cap_PlanRadiationTherapy ;
+    kg:owns kg:tool_RadiationPlanningSystem ;
+    kg:specialty "Oncology" .
+
+kg:Pediatrics_GrowthAssessment a kg:Agent ;
+    rdfs:label "Pediatrics GrowthAssessment" ;
+    kg:handles kg:cap_AssessGrowth ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Pediatrics" .
+
+kg:Pediatrics_VaccinationManagement a kg:Agent ;
+    rdfs:label "Pediatrics VaccinationManagement" ;
+    kg:handles kg:cap_ManageVaccination ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Pediatrics" .
+
+kg:Pharmacy_RefillManagement a kg:Agent ;
+    rdfs:label "Pharmacy RefillManagement" ;
+    kg:handles kg:cap_ManageRefill ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Pharmacy" .
+
+kg:Radiology_IntakeOrder a kg:Agent ;
+    rdfs:label "Radiology IntakeOrder" ;
+    kg:handles kg:cap_ReceiveImagingOrder ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Radiology" .
+
+kg:Radiology_MRIReading a kg:Agent ;
+    rdfs:label "Radiology MRIReading" ;
+    kg:handles kg:cap_InterpretMRI ;
+    kg:owns kg:tool_ImagingViewer ;
+    kg:specialty "Radiology" .
+
+kg:Radiology_RadiologistConsult a kg:Agent ;
+    rdfs:label "Radiology RadiologistConsult" ;
+    kg:handles kg:cap_ProvideImagingOpinion ;
+    kg:owns kg:tool_ImagingViewer ;
+    kg:specialty "Radiology" .
+
+kg:Radiology_ReportGeneration a kg:Agent ;
+    rdfs:label "Radiology ReportGeneration" ;
+    kg:handles kg:cap_GenerateRadiologyReport ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Radiology" .
+
+kg:Radiology_UltrasoundReading a kg:Agent ;
+    rdfs:label "Radiology UltrasoundReading" ;
+    kg:handles kg:cap_InterpretUltrasound ;
+    kg:owns kg:tool_ImagingViewer ;
+    kg:specialty "Radiology" .
+
+kg:consults a rdf:Property ;
+    rdfs:comment "Request input or a second opinion from another agent for additional information, while the current agent keeps ownership of the case. Use when the current step needs supporting data before it can proceed, not when handing the case off for good." ;
+    rdfs:subPropertyOf kg:canHandoffTo .
+
+kg:delegatesTo a rdf:Property ;
+    rdfs:comment "Hand the case forward to the next agent in the same care stage once the current step is complete. This is the ordinary forward progression of a clinical pathway (stage_complete), keeping the patient within the current line of care." ;
+    rdfs:subPropertyOf kg:canHandoffTo .
+
+kg:escalatesTo a rdf:Property ;
+    rdfs:comment "Escalate to a higher-acuity or more specialised agent when an urgent finding or a condition exceeds the current agent's authority or scope. Use for time-critical or safety-critical transitions (urgent_finding)." ;
+    rdfs:subPropertyOf kg:canHandoffTo .
+
+kg:handoff_1 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Surgery_SurgicalPlanning ;
+    kg:to kg:Surgery_IntraOpCoordination ;
+    kg:weight 6e-01 .
+
+kg:handoff_10 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:Pediatrics_ReferralCoordination ;
+    kg:to kg:Cardiology_PostCareFollowUp ;
+    kg:weight 7e-01 .
+
+kg:handoff_100 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Neurology_TreatmentPlanning ;
+    kg:to kg:Orthopedics_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_101 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Neurology_TreatmentPlanning ;
+    kg:to kg:Neurology_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_102 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:Neurology_TreatmentPlanning ;
+    kg:to kg:Pediatrics_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_103 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Neurology_TreatmentPlanning ;
+    kg:to kg:Psychiatry_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_104 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Oncology_TreatmentPlanning ;
+    kg:to kg:Oncology_ChemotherapyManagement ;
+    kg:weight 6e-01 .
+
+kg:handoff_105 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Orthopedics_Triage ;
+    kg:to kg:Orthopedics_FractureAssessment ;
+    kg:weight 6e-01 .
+
+kg:handoff_106 a kg:ConsultHandoff ;
+    kg:condition "additional_input_needed" ;
+    kg:from kg:PrimaryCare_GeneralAssessment ;
+    kg:to kg:LabPathology_LabAnalysis ;
+    kg:weight 6e-01 .
+
+kg:handoff_107 a kg:ReturnHandoff ;
+    kg:condition "consult_complete" ;
+    kg:from kg:LabPathology_LabAnalysis ;
+    kg:to kg:PrimaryCare_GeneralAssessment ;
+    kg:weight 6e-01 .
+
+kg:handoff_108 a kg:EscalationHandoff ;
+    kg:condition "urgent_finding" ;
+    kg:from kg:EmergencyMedicine_RapidAssessment ;
+    kg:to kg:LabPathology_LabAnalysis ;
+    kg:weight 9e-01 .
+
+kg:handoff_109 a kg:ConsultHandoff ;
+    kg:condition "additional_input_needed" ;
+    kg:from kg:Pediatrics_AcuteIllnessAssessment ;
+    kg:to kg:LabPathology_LabAnalysis ;
+    kg:weight 6e-01 .
+
+kg:handoff_11 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:Pediatrics_ReferralCoordination ;
+    kg:to kg:Oncology_SurvivorshipFollowUp ;
+    kg:weight 7e-01 .
+
+kg:handoff_110 a kg:ReturnHandoff ;
+    kg:condition "consult_complete" ;
+    kg:from kg:LabPathology_LabAnalysis ;
+    kg:to kg:Pediatrics_AcuteIllnessAssessment ;
+    kg:weight 6e-01 .
+
+kg:handoff_111 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:Pharmacy_MedicationReconciliation ;
+    kg:to kg:PrimaryCare_PatientEducation ;
+    kg:weight 6e-01 .
+
+kg:handoff_112 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:LabPathology_LabAnalysis ;
+    kg:to kg:PrimaryCare_ReferralCoordination ;
+    kg:weight 6e-01 .
+
+kg:handoff_113 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:LabPathology_LabAnalysis ;
+    kg:to kg:Pediatrics_ReferralCoordination ;
+    kg:weight 6e-01 .
+
+kg:handoff_114 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Neurology_Triage ;
+    kg:to kg:Neurology_StrokeAssessment ;
+    kg:weight 6e-01 .
+
+kg:handoff_115 a kg:ConsultHandoff ;
+    kg:condition "additional_input_needed" ;
+    kg:from kg:Surgery_PreOpAssessment ;
+    kg:to kg:Pharmacy_DrugInteractionCheck ;
+    kg:weight 6e-01 .
+
+kg:handoff_116 a kg:ReturnHandoff ;
+    kg:condition "consult_complete" ;
+    kg:from kg:Pharmacy_DrugInteractionCheck ;
+    kg:to kg:Surgery_PreOpAssessment ;
+    kg:weight 6e-01 .
+
+kg:handoff_117 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Psychiatry_DiagnosticEvaluation ;
+    kg:to kg:Psychiatry_MedicationManagement ;
+    kg:weight 6e-01 .
+
+kg:handoff_118 a kg:EscalationHandoff ;
+    kg:condition "urgent_finding" ;
+    kg:from kg:EmergencyMedicine_Triage ;
+    kg:to kg:Neurology_Triage ;
+    kg:weight 9e-01 .
+
+kg:handoff_119 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Oncology_BiopsyReview ;
+    kg:to kg:Oncology_StagingAssessment ;
+    kg:weight 6e-01 .
+
+kg:handoff_12 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:Pediatrics_ReferralCoordination ;
+    kg:to kg:Orthopedics_FollowUp ;
+    kg:weight 7e-01 .
+
+kg:handoff_120 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:LabPathology_PathologyReview ;
+    kg:to kg:Oncology_StagingAssessment ;
+    kg:weight 6e-01 .
+
+kg:handoff_121 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Psychiatry_RiskAssessment ;
+    kg:to kg:Psychiatry_DiagnosticEvaluation ;
+    kg:weight 6e-01 .
+
+kg:handoff_122 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Psychiatry_MedicationManagement ;
+    kg:to kg:Psychiatry_TherapyCoordination ;
+    kg:weight 6e-01 .
+
+kg:handoff_123 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:PrimaryCare_GeneralAssessment ;
+    kg:to kg:Cardiology_Triage ;
+    kg:weight 7e-01 .
+
+kg:handoff_124 a kg:EscalationHandoff ;
+    kg:condition "urgent_finding" ;
+    kg:from kg:EmergencyMedicine_RapidAssessment ;
+    kg:to kg:Cardiology_Triage ;
+    kg:weight 9e-01 .
+
+kg:handoff_125 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:Pediatrics_AcuteIllnessAssessment ;
+    kg:to kg:Cardiology_Triage ;
+    kg:weight 7e-01 .
+
+kg:handoff_126 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:PrimaryCare_GeneralAssessment ;
+    kg:to kg:Psychiatry_RiskAssessment ;
+    kg:weight 7e-01 .
+
+kg:handoff_127 a kg:EscalationHandoff ;
+    kg:condition "urgent_finding" ;
+    kg:from kg:EmergencyMedicine_RapidAssessment ;
+    kg:to kg:Psychiatry_RiskAssessment ;
+    kg:weight 9e-01 .
+
+kg:handoff_128 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:Pediatrics_AcuteIllnessAssessment ;
+    kg:to kg:Psychiatry_RiskAssessment ;
+    kg:weight 7e-01 .
+
+kg:handoff_129 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:Psychiatry_TherapyCoordination ;
+    kg:to kg:PrimaryCare_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_13 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:Pediatrics_ReferralCoordination ;
+    kg:to kg:Neurology_FollowUp ;
+    kg:weight 7e-01 .
+
+kg:handoff_130 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Psychiatry_TherapyCoordination ;
+    kg:to kg:Cardiology_PostCareFollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_131 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Psychiatry_TherapyCoordination ;
+    kg:to kg:Oncology_SurvivorshipFollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_132 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Psychiatry_TherapyCoordination ;
+    kg:to kg:Orthopedics_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_133 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Psychiatry_TherapyCoordination ;
+    kg:to kg:Neurology_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_134 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:Psychiatry_TherapyCoordination ;
+    kg:to kg:Pediatrics_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_135 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Psychiatry_TherapyCoordination ;
+    kg:to kg:Psychiatry_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_14 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Pediatrics_ReferralCoordination ;
+    kg:to kg:Pediatrics_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_15 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:Pediatrics_ReferralCoordination ;
+    kg:to kg:Psychiatry_FollowUp ;
+    kg:weight 7e-01 .
+
+kg:handoff_16 a kg:EscalationHandoff ;
+    kg:condition "urgent_finding" ;
+    kg:from kg:Radiology_CTReading ;
+    kg:to kg:EmergencyMedicine_CriticalCareCoordination ;
+    kg:weight 9e-01 .
+
+kg:handoff_17 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Surgery_PostOpCare ;
+    kg:to kg:Surgery_ComplicationManagement ;
+    kg:weight 6e-01 .
+
+kg:handoff_18 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Cardiology_EchoAnalysis ;
+    kg:to kg:Cardiology_TreatmentPlanning ;
+    kg:weight 6e-01 .
+
+kg:handoff_19 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:PrimaryCare_GeneralAssessment ;
+    kg:to kg:PrimaryCare_PreventiveScreening ;
+    kg:weight 6e-01 .
+
+kg:handoff_2 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:PrimaryCare_ReferralCoordination ;
+    kg:to kg:PrimaryCare_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_20 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:PrimaryCare_GeneralAssessment ;
+    kg:to kg:Oncology_Screening ;
+    kg:weight 7e-01 .
+
+kg:handoff_21 a kg:EscalationHandoff ;
+    kg:condition "urgent_finding" ;
+    kg:from kg:EmergencyMedicine_RapidAssessment ;
+    kg:to kg:PrimaryCare_PreventiveScreening ;
+    kg:weight 9e-01 .
+
+kg:handoff_22 a kg:EscalationHandoff ;
+    kg:condition "urgent_finding" ;
+    kg:from kg:EmergencyMedicine_RapidAssessment ;
+    kg:to kg:Oncology_Screening ;
+    kg:weight 9e-01 .
+
+kg:handoff_23 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Pediatrics_AcuteIllnessAssessment ;
+    kg:to kg:PrimaryCare_PreventiveScreening ;
+    kg:weight 6e-01 .
+
+kg:handoff_24 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:Pediatrics_AcuteIllnessAssessment ;
+    kg:to kg:Oncology_Screening ;
+    kg:weight 7e-01 .
+
+kg:handoff_25 a kg:ConsultHandoff ;
+    kg:condition "additional_input_needed" ;
+    kg:from kg:LabPathology_LabAnalysis ;
+    kg:to kg:Pharmacy_MedicationReconciliation ;
+    kg:weight 6e-01 .
+
+kg:handoff_26 a kg:ReturnHandoff ;
+    kg:condition "consult_complete" ;
+    kg:from kg:Pharmacy_MedicationReconciliation ;
+    kg:to kg:LabPathology_LabAnalysis ;
+    kg:weight 6e-01 .
+
+kg:handoff_27 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Oncology_StagingAssessment ;
+    kg:to kg:Oncology_TreatmentPlanning ;
+    kg:weight 6e-01 .
+
+kg:handoff_28 a kg:ConsultHandoff ;
+    kg:condition "additional_input_needed" ;
+    kg:from kg:PrimaryCare_ChronicDiseaseManagement ;
+    kg:to kg:LabPathology_LabAnalysis ;
+    kg:weight 6e-01 .
+
+kg:handoff_29 a kg:ReturnHandoff ;
+    kg:condition "consult_complete" ;
+    kg:from kg:LabPathology_LabAnalysis ;
+    kg:to kg:PrimaryCare_ChronicDiseaseManagement ;
+    kg:weight 6e-01 .
+
+kg:handoff_3 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:PrimaryCare_ReferralCoordination ;
+    kg:to kg:Cardiology_PostCareFollowUp ;
+    kg:weight 7e-01 .
+
+kg:handoff_30 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:Oncology_ChemotherapyManagement ;
+    kg:to kg:PrimaryCare_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_31 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Oncology_ChemotherapyManagement ;
+    kg:to kg:Cardiology_PostCareFollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_32 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Oncology_ChemotherapyManagement ;
+    kg:to kg:Oncology_SurvivorshipFollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_33 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Oncology_ChemotherapyManagement ;
+    kg:to kg:Orthopedics_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_34 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Oncology_ChemotherapyManagement ;
+    kg:to kg:Neurology_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_35 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:Oncology_ChemotherapyManagement ;
+    kg:to kg:Pediatrics_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_36 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Oncology_ChemotherapyManagement ;
+    kg:to kg:Psychiatry_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_37 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:PrimaryCare_PreventiveScreening ;
+    kg:to kg:Oncology_BiopsyReview ;
+    kg:weight 7e-01 .
+
+kg:handoff_38 a kg:ConsultHandoff ;
+    kg:condition "additional_input_needed" ;
+    kg:from kg:PrimaryCare_PreventiveScreening ;
+    kg:to kg:LabPathology_PathologyReview ;
+    kg:weight 6e-01 .
+
+kg:handoff_39 a kg:ReturnHandoff ;
+    kg:condition "consult_complete" ;
+    kg:from kg:LabPathology_PathologyReview ;
+    kg:to kg:PrimaryCare_PreventiveScreening ;
+    kg:weight 6e-01 .
+
+kg:handoff_4 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:PrimaryCare_ReferralCoordination ;
+    kg:to kg:Oncology_SurvivorshipFollowUp ;
+    kg:weight 7e-01 .
+
+kg:handoff_40 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Oncology_Screening ;
+    kg:to kg:Oncology_BiopsyReview ;
+    kg:weight 6e-01 .
+
+kg:handoff_41 a kg:ConsultHandoff ;
+    kg:condition "additional_input_needed" ;
+    kg:from kg:Oncology_Screening ;
+    kg:to kg:LabPathology_PathologyReview ;
+    kg:weight 6e-01 .
+
+kg:handoff_42 a kg:ReturnHandoff ;
+    kg:condition "consult_complete" ;
+    kg:from kg:LabPathology_PathologyReview ;
+    kg:to kg:Oncology_Screening ;
+    kg:weight 6e-01 .
+
+kg:handoff_43 a kg:EscalationHandoff ;
+    kg:condition "urgent_finding" ;
+    kg:from kg:EmergencyMedicine_CriticalCareCoordination ;
+    kg:to kg:EmergencyMedicine_DischargePlanning ;
+    kg:weight 9e-01 .
+
+kg:handoff_44 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Surgery_ComplicationManagement ;
+    kg:to kg:Orthopedics_PostOpRehab ;
+    kg:weight 6e-01 .
+
+kg:handoff_45 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Pharmacy_DrugInteractionCheck ;
+    kg:to kg:Pharmacy_DosageVerification ;
+    kg:weight 6e-01 .
+
+kg:handoff_46 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:PrimaryCare_PatientEducation ;
+    kg:to kg:PrimaryCare_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_47 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:PrimaryCare_PatientEducation ;
+    kg:to kg:Cardiology_PostCareFollowUp ;
+    kg:weight 7e-01 .
+
+kg:handoff_48 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:PrimaryCare_PatientEducation ;
+    kg:to kg:Oncology_SurvivorshipFollowUp ;
+    kg:weight 7e-01 .
+
+kg:handoff_49 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:PrimaryCare_PatientEducation ;
+    kg:to kg:Orthopedics_FollowUp ;
+    kg:weight 7e-01 .
+
+kg:handoff_5 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:PrimaryCare_ReferralCoordination ;
+    kg:to kg:Orthopedics_FollowUp ;
+    kg:weight 7e-01 .
+
+kg:handoff_50 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:PrimaryCare_PatientEducation ;
+    kg:to kg:Neurology_FollowUp ;
+    kg:weight 7e-01 .
+
+kg:handoff_51 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:PrimaryCare_PatientEducation ;
+    kg:to kg:Pediatrics_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_52 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:PrimaryCare_PatientEducation ;
+    kg:to kg:Psychiatry_FollowUp ;
+    kg:weight 7e-01 .
+
+kg:handoff_53 a kg:ConsultHandoff ;
+    kg:condition "additional_input_needed" ;
+    kg:from kg:Orthopedics_FractureAssessment ;
+    kg:to kg:Radiology_XRayReading ;
+    kg:weight 6e-01 .
+
+kg:handoff_54 a kg:ReturnHandoff ;
+    kg:condition "consult_complete" ;
+    kg:from kg:Radiology_XRayReading ;
+    kg:to kg:Orthopedics_FractureAssessment ;
+    kg:weight 6e-01 .
+
+kg:handoff_55 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Orthopedics_FractureAssessment ;
+    kg:to kg:Orthopedics_ImagingReview ;
+    kg:weight 6e-01 .
+
+kg:handoff_56 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Orthopedics_SurgicalPlanning ;
+    kg:to kg:Orthopedics_PostOpRehab ;
+    kg:weight 6e-01 .
+
+kg:handoff_57 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Pharmacy_DosageVerification ;
+    kg:to kg:Pharmacy_PatientCounseling ;
+    kg:weight 6e-01 .
+
+kg:handoff_58 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:PrimaryCare_PreventiveScreening ;
+    kg:to kg:PrimaryCare_PatientEducation ;
+    kg:weight 6e-01 .
+
+kg:handoff_59 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:Oncology_Screening ;
+    kg:to kg:PrimaryCare_PatientEducation ;
+    kg:weight 6e-01 .
+
+kg:handoff_6 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:PrimaryCare_ReferralCoordination ;
+    kg:to kg:Neurology_FollowUp ;
+    kg:weight 7e-01 .
+
+kg:handoff_60 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:PrimaryCare_Intake ;
+    kg:to kg:PrimaryCare_GeneralAssessment ;
+    kg:weight 6e-01 .
+
+kg:handoff_61 a kg:EscalationHandoff ;
+    kg:condition "urgent_finding" ;
+    kg:from kg:PrimaryCare_Intake ;
+    kg:to kg:EmergencyMedicine_RapidAssessment ;
+    kg:weight 9e-01 .
+
+kg:handoff_62 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:PrimaryCare_Intake ;
+    kg:to kg:Pediatrics_AcuteIllnessAssessment ;
+    kg:weight 6e-01 .
+
+kg:handoff_63 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Pediatrics_Intake ;
+    kg:to kg:PrimaryCare_GeneralAssessment ;
+    kg:weight 6e-01 .
+
+kg:handoff_64 a kg:EscalationHandoff ;
+    kg:condition "urgent_finding" ;
+    kg:from kg:Pediatrics_Intake ;
+    kg:to kg:EmergencyMedicine_RapidAssessment ;
+    kg:weight 9e-01 .
+
+kg:handoff_65 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Pediatrics_Intake ;
+    kg:to kg:Pediatrics_AcuteIllnessAssessment ;
+    kg:weight 6e-01 .
+
+kg:handoff_66 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:Psychiatry_Intake ;
+    kg:to kg:PrimaryCare_GeneralAssessment ;
+    kg:weight 6e-01 .
+
+kg:handoff_67 a kg:EscalationHandoff ;
+    kg:condition "urgent_finding" ;
+    kg:from kg:Psychiatry_Intake ;
+    kg:to kg:EmergencyMedicine_RapidAssessment ;
+    kg:weight 9e-01 .
+
+kg:handoff_68 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:Psychiatry_Intake ;
+    kg:to kg:Pediatrics_AcuteIllnessAssessment ;
+    kg:weight 6e-01 .
+
+kg:handoff_69 a kg:ConsultHandoff ;
+    kg:condition "additional_input_needed" ;
+    kg:from kg:PrimaryCare_ChronicDiseaseManagement ;
+    kg:to kg:Pharmacy_MedicationReconciliation ;
+    kg:weight 6e-01 .
+
+kg:handoff_7 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:PrimaryCare_ReferralCoordination ;
+    kg:to kg:Pediatrics_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_70 a kg:ReturnHandoff ;
+    kg:condition "consult_complete" ;
+    kg:from kg:Pharmacy_MedicationReconciliation ;
+    kg:to kg:PrimaryCare_ChronicDiseaseManagement ;
+    kg:weight 6e-01 .
+
+kg:handoff_71 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:PrimaryCare_GeneralAssessment ;
+    kg:to kg:Surgery_PreOpAssessment ;
+    kg:weight 7e-01 .
+
+kg:handoff_72 a kg:EscalationHandoff ;
+    kg:condition "urgent_finding" ;
+    kg:from kg:EmergencyMedicine_RapidAssessment ;
+    kg:to kg:Surgery_PreOpAssessment ;
+    kg:weight 9e-01 .
+
+kg:handoff_73 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:Pediatrics_AcuteIllnessAssessment ;
+    kg:to kg:Surgery_PreOpAssessment ;
+    kg:weight 7e-01 .
+
+kg:handoff_74 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:Orthopedics_PostOpRehab ;
+    kg:to kg:PrimaryCare_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_75 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Orthopedics_PostOpRehab ;
+    kg:to kg:Cardiology_PostCareFollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_76 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Orthopedics_PostOpRehab ;
+    kg:to kg:Oncology_SurvivorshipFollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_77 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Orthopedics_PostOpRehab ;
+    kg:to kg:Orthopedics_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_78 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Orthopedics_PostOpRehab ;
+    kg:to kg:Neurology_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_79 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:Orthopedics_PostOpRehab ;
+    kg:to kg:Pediatrics_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_8 a kg:ReferralHandoff ;
+    kg:condition "requires_specialist" ;
+    kg:from kg:PrimaryCare_ReferralCoordination ;
+    kg:to kg:Psychiatry_FollowUp ;
+    kg:weight 7e-01 .
+
+kg:handoff_80 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Orthopedics_PostOpRehab ;
+    kg:to kg:Psychiatry_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_81 a kg:EscalationHandoff ;
+    kg:condition "urgent_finding" ;
+    kg:from kg:EmergencyMedicine_TraumaStabilization ;
+    kg:to kg:Radiology_CTReading ;
+    kg:weight 9e-01 .
+
+kg:handoff_82 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Cardiology_Triage ;
+    kg:to kg:Cardiology_ECGInterpretation ;
+    kg:weight 6e-01 .
+
+kg:handoff_83 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Neurology_StrokeAssessment ;
+    kg:to kg:Neurology_TreatmentPlanning ;
+    kg:weight 6e-01 .
+
+kg:handoff_84 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Pharmacy_MedicationReconciliation ;
+    kg:to kg:Pharmacy_DrugInteractionCheck ;
+    kg:weight 6e-01 .
+
+kg:handoff_85 a kg:EscalationHandoff ;
+    kg:condition "urgent_finding" ;
+    kg:from kg:EmergencyMedicine_Triage ;
+    kg:to kg:EmergencyMedicine_TraumaStabilization ;
+    kg:weight 9e-01 .
+
+kg:handoff_86 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Pharmacy_DrugInteractionCheck ;
+    kg:to kg:Surgery_SurgicalPlanning ;
+    kg:weight 6e-01 .
+
+kg:handoff_87 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Radiology_XRayReading ;
+    kg:to kg:Orthopedics_SurgicalPlanning ;
+    kg:weight 6e-01 .
+
+kg:handoff_88 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Orthopedics_ImagingReview ;
+    kg:to kg:Orthopedics_SurgicalPlanning ;
+    kg:weight 6e-01 .
+
+kg:handoff_89 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:Cardiology_TreatmentPlanning ;
+    kg:to kg:PrimaryCare_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_9 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Pediatrics_ReferralCoordination ;
+    kg:to kg:PrimaryCare_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_90 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Cardiology_TreatmentPlanning ;
+    kg:to kg:Cardiology_PostCareFollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_91 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Cardiology_TreatmentPlanning ;
+    kg:to kg:Oncology_SurvivorshipFollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_92 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Cardiology_TreatmentPlanning ;
+    kg:to kg:Orthopedics_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_93 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Cardiology_TreatmentPlanning ;
+    kg:to kg:Neurology_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_94 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:Cardiology_TreatmentPlanning ;
+    kg:to kg:Pediatrics_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_95 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Cardiology_TreatmentPlanning ;
+    kg:to kg:Psychiatry_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_96 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Cardiology_ECGInterpretation ;
+    kg:to kg:Cardiology_EchoAnalysis ;
+    kg:weight 6e-01 .
+
+kg:handoff_97 a kg:ReturnHandoff ;
+    kg:condition "treatment_complete" ;
+    kg:from kg:Neurology_TreatmentPlanning ;
+    kg:to kg:PrimaryCare_FollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_98 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Neurology_TreatmentPlanning ;
+    kg:to kg:Cardiology_PostCareFollowUp ;
+    kg:weight 6e-01 .
+
+kg:handoff_99 a kg:DelegationHandoff ;
+    kg:condition "stage_complete" ;
+    kg:from kg:Neurology_TreatmentPlanning ;
+    kg:to kg:Oncology_SurvivorshipFollowUp ;
+    kg:weight 6e-01 .
+
+kg:refersTo a rdf:Property ;
+    rdfs:comment "Refer the patient to a different specialty for dedicated assessment or follow-up that lies outside the current agent's domain (requires_specialist). Ownership moves to the receiving specialty." ;
+    rdfs:subPropertyOf kg:canHandoffTo .
+
+kg:returnsTo a rdf:Property ;
+    rdfs:comment "Return the case to the referring or primary agent once a consult or specialist step is finished (consult_complete / treatment_complete), so the originating agent can resume coordination." ;
+    rdfs:subPropertyOf kg:canHandoffTo .
+
+kg:task_AnnualPhysicalExamPathway a kg:TaskType ;
+    rdfs:label "AnnualPhysicalExamPathway" ;
+    kg:requires [ kg:capability kg:cap_AssessPatientCondition ],
+        [ kg:capability kg:cap_ConductScreening ],
+        [ kg:capability kg:cap_RegisterPatient ],
+        [ kg:capability kg:cap_EducatePatient ] .
+
+kg:task_CancerScreeningPathway a kg:TaskType ;
+    rdfs:label "CancerScreeningPathway" ;
+    kg:requires [ kg:capability kg:cap_ManageChemotherapy ],
+        [ kg:capability kg:cap_ConductFollowUp ],
+        [ kg:capability kg:cap_AssessCancerStage ],
+        [ kg:capability kg:cap_ReviewBiopsy ],
+        [ kg:capability kg:cap_PlanOncologyTreatment ],
+        [ kg:capability kg:cap_ConductScreening ] .
+
+kg:task_ChestPainWorkup a kg:TaskType ;
+    rdfs:label "ChestPainWorkup" ;
+    kg:requires [ kg:capability kg:cap_ConductFollowUp ],
+        [ kg:capability kg:cap_PlanCardiacTreatment ],
+        [ kg:capability kg:cap_InterpretECG ],
+        [ kg:capability kg:cap_InterpretEcho ],
+        [ kg:capability kg:cap_AssessChestPain ],
+        [ kg:capability kg:cap_AssessPatientCondition ] .
+
+kg:task_DepressionScreeningPathway a kg:TaskType ;
+    rdfs:label "DepressionScreeningPathway" ;
+    kg:requires [ kg:capability kg:cap_ConductFollowUp ],
+        [ kg:capability kg:cap_ManageMedication ],
+        [ kg:capability kg:cap_CoordinateTherapy ],
+        [ kg:capability kg:cap_ConductDiagnosticEval ],
+        [ kg:capability kg:cap_AssessRisk ],
+        [ kg:capability kg:cap_AssessPatientCondition ] .
+
+kg:task_DiabetesManagementPathway a kg:TaskType ;
+    rdfs:label "DiabetesManagementPathway" ;
+    kg:requires [ kg:capability kg:cap_ReconcileMedications ],
+        [ kg:capability kg:cap_ManageChronicCondition ],
+        [ kg:capability kg:cap_AnalyzeSpecimen ],
+        [ kg:capability kg:cap_EducatePatient ],
+        [ kg:capability kg:cap_ConductFollowUp ] .
+
+kg:task_FractureManagementPathway a kg:TaskType ;
+    rdfs:label "FractureManagementPathway" ;
+    kg:requires [ kg:capability kg:cap_AssessInjury ],
+        [ kg:capability kg:cap_ManageRehab ],
+        [ kg:capability kg:cap_InterpretXRay ],
+        [ kg:capability kg:cap_AssessFracture ],
+        [ kg:capability kg:cap_ConductFollowUp ],
+        [ kg:capability kg:cap_PlanOrthopedicSurgery ] .
+
+kg:task_MedicationReviewPathway a kg:TaskType ;
+    rdfs:label "MedicationReviewPathway" ;
+    kg:requires [ kg:capability kg:cap_CounselPatient ],
+        [ kg:capability kg:cap_CheckDrugInteractions ],
+        [ kg:capability kg:cap_ManageChronicCondition ],
+        [ kg:capability kg:cap_ReconcileMedications ],
+        [ kg:capability kg:cap_VerifyDosage ] .
+
+kg:task_PediatricFeverWorkup a kg:TaskType ;
+    rdfs:label "PediatricFeverWorkup" ;
+    kg:requires [ kg:capability kg:cap_CoordinateReferral ],
+        [ kg:capability kg:cap_AnalyzeSpecimen ],
+        [ kg:capability kg:cap_AssessPatientCondition ],
+        [ kg:capability kg:cap_RegisterPatient ],
+        [ kg:capability kg:cap_ConductFollowUp ] .
+
+kg:task_PostSurgicalFollowUpPathway a kg:TaskType ;
+    rdfs:label "PostSurgicalFollowUpPathway" ;
+    kg:requires [ kg:capability kg:cap_ManagePostOpCare ],
+        [ kg:capability kg:cap_ConductFollowUp ],
+        [ kg:capability kg:cap_ManageComplication ],
+        [ kg:capability kg:cap_ManageRehab ] .
+
+kg:task_PreOpClearancePathway a kg:TaskType ;
+    rdfs:label "PreOpClearancePathway" ;
+    kg:requires [ kg:capability kg:cap_CoordinateSurgery ],
+        [ kg:capability kg:cap_CheckDrugInteractions ],
+        [ kg:capability kg:cap_AssessPatientCondition ],
+        [ kg:capability kg:cap_AssessSurgicalRisk ],
+        [ kg:capability kg:cap_PlanSurgery ] .
+
+kg:task_StrokeWorkup a kg:TaskType ;
+    rdfs:label "StrokeWorkup" ;
+    kg:requires [ kg:capability kg:cap_ConductFollowUp ],
+        [ kg:capability kg:cap_AssessNeuroSymptoms ],
+        [ kg:capability kg:cap_AssessStroke ],
+        [ kg:capability kg:cap_PlanNeuroTreatment ],
+        [ kg:capability kg:cap_AssessUrgency ] .
+
+kg:task_TraumaResponsePathway a kg:TaskType ;
+    rdfs:label "TraumaResponsePathway" ;
+    kg:requires [ kg:capability kg:cap_PlanDischarge ],
+        [ kg:capability kg:cap_AssessUrgency ],
+        [ kg:capability kg:cap_CoordinateCriticalCare ],
+        [ kg:capability kg:cap_InterpretCT ],
+        [ kg:capability kg:cap_StabilizeTrauma ] .
+
+kg:Orthopedics_Triage a kg:Agent ;
+    rdfs:label "Orthopedics Triage" ;
+    kg:delegatesTo kg:Orthopedics_FractureAssessment ;
+    kg:handles kg:cap_AssessInjury ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Orthopedics" .
+
+kg:Surgery_PostOpCare a kg:Agent ;
+    rdfs:label "Surgery PostOpCare" ;
+    kg:delegatesTo kg:Surgery_ComplicationManagement ;
+    kg:handles kg:cap_ManagePostOpCare ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Surgery" .
+
+kg:cap_AssessGrowth a kg:Capability ;
+    rdfs:label "AssessGrowth" .
+
+kg:cap_ConductNeuroExam a kg:Capability ;
+    rdfs:label "ConductNeuroExam" .
+
+kg:cap_GenerateRadiologyReport a kg:Capability ;
+    rdfs:label "GenerateRadiologyReport" .
+
+kg:cap_InterpretEEG a kg:Capability ;
+    rdfs:label "InterpretEEG" .
+
+kg:cap_InterpretMRI a kg:Capability ;
+    rdfs:label "InterpretMRI" .
+
+kg:cap_InterpretStressTest a kg:Capability ;
+    rdfs:label "InterpretStressTest" .
+
+kg:cap_InterpretUltrasound a kg:Capability ;
+    rdfs:label "InterpretUltrasound" .
+
+kg:cap_ManageRefill a kg:Capability ;
+    rdfs:label "ManageRefill" .
+
+kg:cap_ManageVaccination a kg:Capability ;
+    rdfs:label "ManageVaccination" .
+
+kg:cap_PerformCatheterization a kg:Capability ;
+    rdfs:label "PerformCatheterization" .
+
+kg:cap_PlanRadiationTherapy a kg:Capability ;
+    rdfs:label "PlanRadiationTherapy" .
+
+kg:cap_ProvideImagingOpinion a kg:Capability ;
+    rdfs:label "ProvideImagingOpinion" .
+
+kg:cap_ReceiveImagingOrder a kg:Capability ;
+    rdfs:label "ReceiveImagingOrder" .
+
+kg:cap_ReceiveSpecimen a kg:Capability ;
+    rdfs:label "ReceiveSpecimen" .
+
+kg:cap_ReportLabResults a kg:Capability ;
+    rdfs:label "ReportLabResults" .
+
+kg:tool_CathLabSystem a kg:Tool ;
+    rdfs:label "CathLabSystem" .
+
+kg:tool_ECGAnalyzer a kg:Tool ;
+    rdfs:label "ECGAnalyzer" .
+
+kg:tool_EEGSystem a kg:Tool ;
+    rdfs:label "EEGSystem" .
+
+kg:tool_EchoDevice a kg:Tool ;
+    rdfs:label "EchoDevice" .
+
+kg:tool_ORSystem a kg:Tool ;
+    rdfs:label "ORSystem" .
+
+kg:tool_RadiationPlanningSystem a kg:Tool ;
+    rdfs:label "RadiationPlanningSystem" .
+
+kg:tool_StressTestSystem a kg:Tool ;
+    rdfs:label "StressTestSystem" .
+
+kg:tool_TraumaKit a kg:Tool ;
+    rdfs:label "TraumaKit" .
+
+kg:EmergencyMedicine_DischargePlanning a kg:Agent ;
+    rdfs:label "EmergencyMedicine DischargePlanning" ;
+    kg:handles kg:cap_PlanDischarge ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "EmergencyMedicine" .
+
+kg:EmergencyMedicine_Triage a kg:Agent ;
+    rdfs:label "EmergencyMedicine Triage" ;
+    kg:escalatesTo kg:EmergencyMedicine_TraumaStabilization,
+        kg:Neurology_Triage ;
+    kg:handles kg:cap_AssessUrgency ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "EmergencyMedicine" .
+
+kg:Pharmacy_PatientCounseling a kg:Agent ;
+    rdfs:label "Pharmacy PatientCounseling" ;
+    kg:handles kg:cap_CounselPatient ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Pharmacy" .
+
+kg:Surgery_IntraOpCoordination a kg:Agent ;
+    rdfs:label "Surgery IntraOpCoordination" ;
+    kg:handles kg:cap_CoordinateSurgery ;
+    kg:owns kg:tool_ORSystem ;
+    kg:specialty "Surgery" .
+
+kg:cap_AssessInjury a kg:Capability ;
+    rdfs:label "AssessInjury" ;
+    kg:precedes kg:cap_AssessFracture .
+
+kg:cap_ManagePostOpCare a kg:Capability ;
+    rdfs:label "ManagePostOpCare" ;
+    kg:precedes kg:cap_ManageComplication .
+
+kg:tool_PathologyScanner a kg:Tool ;
+    rdfs:label "PathologyScanner" .
+
+kg:Cardiology_ECGInterpretation a kg:Agent ;
+    rdfs:label "Cardiology ECGInterpretation" ;
+    kg:delegatesTo kg:Cardiology_EchoAnalysis ;
+    kg:handles kg:cap_InterpretECG ;
+    kg:owns kg:tool_ECGAnalyzer ;
+    kg:specialty "Cardiology" .
+
+kg:Cardiology_EchoAnalysis a kg:Agent ;
+    rdfs:label "Cardiology EchoAnalysis" ;
+    kg:delegatesTo kg:Cardiology_TreatmentPlanning ;
+    kg:handles kg:cap_InterpretEcho ;
+    kg:owns kg:tool_EchoDevice ;
+    kg:specialty "Cardiology" .
+
+kg:EmergencyMedicine_CriticalCareCoordination a kg:Agent ;
+    rdfs:label "EmergencyMedicine CriticalCareCoordination" ;
+    kg:escalatesTo kg:EmergencyMedicine_DischargePlanning ;
+    kg:handles kg:cap_CoordinateCriticalCare ;
+    kg:owns kg:tool_EHRSystem,
+        kg:tool_SchedulingSystem ;
+    kg:specialty "EmergencyMedicine" .
+
+kg:EmergencyMedicine_TraumaStabilization a kg:Agent ;
+    rdfs:label "EmergencyMedicine TraumaStabilization" ;
+    kg:escalatesTo kg:Radiology_CTReading ;
+    kg:handles kg:cap_StabilizeTrauma ;
+    kg:owns kg:tool_TraumaKit ;
+    kg:specialty "EmergencyMedicine" .
+
+kg:Neurology_StrokeAssessment a kg:Agent ;
+    rdfs:label "Neurology StrokeAssessment" ;
+    kg:delegatesTo kg:Neurology_TreatmentPlanning ;
+    kg:handles kg:cap_AssessStroke ;
+    kg:owns kg:tool_ImagingViewer ;
+    kg:specialty "Neurology" .
+
+kg:Neurology_Triage a kg:Agent ;
+    rdfs:label "Neurology Triage" ;
+    kg:delegatesTo kg:Neurology_StrokeAssessment ;
+    kg:handles kg:cap_AssessNeuroSymptoms ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Neurology" .
+
+kg:Oncology_TreatmentPlanning a kg:Agent ;
+    rdfs:label "Oncology TreatmentPlanning" ;
+    kg:delegatesTo kg:Oncology_ChemotherapyManagement ;
+    kg:handles kg:cap_PlanOncologyTreatment ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Oncology" .
+
+kg:Orthopedics_ImagingReview a kg:Agent ;
+    rdfs:label "Orthopedics ImagingReview" ;
+    kg:delegatesTo kg:Orthopedics_SurgicalPlanning ;
+    kg:handles kg:cap_InterpretXRay ;
+    kg:owns kg:tool_ImagingViewer ;
+    kg:specialty "Orthopedics" .
+
+kg:Pediatrics_Intake a kg:Agent ;
+    rdfs:label "Pediatrics Intake" ;
+    kg:delegatesTo kg:Pediatrics_AcuteIllnessAssessment,
+        kg:PrimaryCare_GeneralAssessment ;
+    kg:escalatesTo kg:EmergencyMedicine_RapidAssessment ;
+    kg:handles kg:cap_RegisterPatient ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Pediatrics" .
+
+kg:Pharmacy_DosageVerification a kg:Agent ;
+    rdfs:label "Pharmacy DosageVerification" ;
+    kg:delegatesTo kg:Pharmacy_PatientCounseling ;
+    kg:handles kg:cap_VerifyDosage ;
+    kg:owns kg:tool_DrugDatabase ;
+    kg:specialty "Pharmacy" .
+
+kg:PrimaryCare_Intake a kg:Agent ;
+    rdfs:label "PrimaryCare Intake" ;
+    kg:delegatesTo kg:Pediatrics_AcuteIllnessAssessment,
+        kg:PrimaryCare_GeneralAssessment ;
+    kg:escalatesTo kg:EmergencyMedicine_RapidAssessment ;
+    kg:handles kg:cap_RegisterPatient ;
+    kg:owns kg:tool_EHRSystem,
+        kg:tool_SchedulingSystem ;
+    kg:specialty "PrimaryCare" .
+
+kg:Psychiatry_DiagnosticEvaluation a kg:Agent ;
+    rdfs:label "Psychiatry DiagnosticEvaluation" ;
+    kg:delegatesTo kg:Psychiatry_MedicationManagement ;
+    kg:handles kg:cap_ConductDiagnosticEval ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Psychiatry" .
+
+kg:Psychiatry_Intake a kg:Agent ;
+    rdfs:label "Psychiatry Intake" ;
+    kg:escalatesTo kg:EmergencyMedicine_RapidAssessment ;
+    kg:handles kg:cap_RegisterPatient ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:returnsTo kg:Pediatrics_AcuteIllnessAssessment,
+        kg:PrimaryCare_GeneralAssessment ;
+    kg:specialty "Psychiatry" .
+
+kg:Psychiatry_MedicationManagement a kg:Agent ;
+    rdfs:label "Psychiatry MedicationManagement" ;
+    kg:delegatesTo kg:Psychiatry_TherapyCoordination ;
+    kg:handles kg:cap_ManageMedication ;
+    kg:owns kg:tool_DrugDatabase ;
+    kg:specialty "Psychiatry" .
+
+kg:Radiology_CTReading a kg:Agent ;
+    rdfs:label "Radiology CTReading" ;
+    kg:escalatesTo kg:EmergencyMedicine_CriticalCareCoordination ;
+    kg:handles kg:cap_InterpretCT ;
+    kg:owns kg:tool_ImagingViewer ;
+    kg:specialty "Radiology" .
+
+kg:Surgery_ComplicationManagement a kg:Agent ;
+    rdfs:label "Surgery ComplicationManagement" ;
+    kg:delegatesTo kg:Orthopedics_PostOpRehab ;
+    kg:handles kg:cap_ManageComplication ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Surgery" .
+
+kg:Surgery_SurgicalPlanning a kg:Agent ;
+    rdfs:label "Surgery SurgicalPlanning" ;
+    kg:delegatesTo kg:Surgery_IntraOpCoordination ;
+    kg:handles kg:cap_PlanSurgery ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Surgery" .
+
+kg:cap_AssessCancerStage a kg:Capability ;
+    rdfs:label "AssessCancerStage" ;
+    kg:precedes kg:cap_PlanOncologyTreatment .
+
+kg:cap_AssessChestPain a kg:Capability ;
+    rdfs:label "AssessChestPain" ;
+    kg:precedes kg:cap_InterpretECG .
+
+kg:cap_AssessFracture a kg:Capability ;
+    rdfs:label "AssessFracture" ;
+    kg:precedes kg:cap_InterpretXRay .
+
+kg:cap_AssessNeuroSymptoms a kg:Capability ;
+    rdfs:label "AssessNeuroSymptoms" ;
+    kg:precedes kg:cap_AssessStroke .
+
+kg:cap_AssessRisk a kg:Capability ;
+    rdfs:label "AssessRisk" ;
+    kg:precedes kg:cap_ConductDiagnosticEval .
+
+kg:cap_AssessStroke a kg:Capability ;
+    rdfs:label "AssessStroke" ;
+    kg:precedes kg:cap_PlanNeuroTreatment .
+
+kg:cap_AssessSurgicalRisk a kg:Capability ;
+    rdfs:label "AssessSurgicalRisk" ;
+    kg:precedes kg:cap_CheckDrugInteractions .
+
+kg:cap_AssessUrgency a kg:Capability ;
+    rdfs:label "AssessUrgency" ;
+    kg:precedes kg:cap_AssessNeuroSymptoms,
+        kg:cap_StabilizeTrauma .
+
+kg:cap_ConductDiagnosticEval a kg:Capability ;
+    rdfs:label "ConductDiagnosticEval" ;
+    kg:precedes kg:cap_ManageMedication .
+
+kg:cap_CoordinateCriticalCare a kg:Capability ;
+    rdfs:label "CoordinateCriticalCare" ;
+    kg:precedes kg:cap_PlanDischarge .
+
+kg:cap_CoordinateSurgery a kg:Capability ;
+    rdfs:label "CoordinateSurgery" .
+
+kg:cap_CoordinateTherapy a kg:Capability ;
+    rdfs:label "CoordinateTherapy" ;
+    kg:precedes kg:cap_ConductFollowUp .
+
+kg:cap_CounselPatient a kg:Capability ;
+    rdfs:label "CounselPatient" .
+
+kg:cap_InterpretCT a kg:Capability ;
+    rdfs:label "InterpretCT" ;
+    kg:precedes kg:cap_CoordinateCriticalCare .
+
+kg:cap_InterpretECG a kg:Capability ;
+    rdfs:label "InterpretECG" ;
+    kg:precedes kg:cap_InterpretEcho .
+
+kg:cap_InterpretEcho a kg:Capability ;
+    rdfs:label "InterpretEcho" ;
+    kg:precedes kg:cap_PlanCardiacTreatment .
+
+kg:cap_ManageChemotherapy a kg:Capability ;
+    rdfs:label "ManageChemotherapy" ;
+    kg:precedes kg:cap_ConductFollowUp .
+
+kg:cap_ManageChronicCondition a kg:Capability ;
+    rdfs:label "ManageChronicCondition" ;
+    kg:precedes kg:cap_AnalyzeSpecimen,
+        kg:cap_ReconcileMedications .
+
+kg:cap_ManageComplication a kg:Capability ;
+    rdfs:label "ManageComplication" ;
+    kg:precedes kg:cap_ManageRehab .
+
+kg:cap_ManageMedication a kg:Capability ;
+    rdfs:label "ManageMedication" ;
+    kg:precedes kg:cap_CoordinateTherapy .
+
+kg:cap_PlanCardiacTreatment a kg:Capability ;
+    rdfs:label "PlanCardiacTreatment" ;
+    kg:precedes kg:cap_ConductFollowUp .
+
+kg:cap_PlanDischarge a kg:Capability ;
+    rdfs:label "PlanDischarge" .
+
+kg:cap_PlanNeuroTreatment a kg:Capability ;
+    rdfs:label "PlanNeuroTreatment" ;
+    kg:precedes kg:cap_ConductFollowUp .
+
+kg:cap_PlanOncologyTreatment a kg:Capability ;
+    rdfs:label "PlanOncologyTreatment" ;
+    kg:precedes kg:cap_ManageChemotherapy .
+
+kg:cap_PlanOrthopedicSurgery a kg:Capability ;
+    rdfs:label "PlanOrthopedicSurgery" ;
+    kg:precedes kg:cap_ManageRehab .
+
+kg:cap_PlanSurgery a kg:Capability ;
+    rdfs:label "PlanSurgery" ;
+    kg:precedes kg:cap_CoordinateSurgery .
+
+kg:cap_StabilizeTrauma a kg:Capability ;
+    rdfs:label "StabilizeTrauma" ;
+    kg:precedes kg:cap_InterpretCT .
+
+kg:cap_VerifyDosage a kg:Capability ;
+    rdfs:label "VerifyDosage" ;
+    kg:precedes kg:cap_CounselPatient .
+
+kg:Radiology_XRayReading a kg:Agent ;
+    rdfs:label "Radiology XRayReading" ;
+    kg:delegatesTo kg:Orthopedics_SurgicalPlanning ;
+    kg:handles kg:cap_InterpretXRay ;
+    kg:owns kg:tool_ImagingViewer ;
+    kg:returnsTo kg:Orthopedics_FractureAssessment ;
+    kg:specialty "Radiology" .
+
+kg:cap_CoordinateReferral a kg:Capability ;
+    rdfs:label "CoordinateReferral" ;
+    kg:precedes kg:cap_ConductFollowUp .
+
+kg:cap_InterpretXRay a kg:Capability ;
+    rdfs:label "InterpretXRay" ;
+    kg:precedes kg:cap_PlanOrthopedicSurgery .
+
+kg:cap_ReviewBiopsy a kg:Capability ;
+    rdfs:label "ReviewBiopsy" ;
+    kg:precedes kg:cap_AssessCancerStage .
+
+kg:tool_LabResultsAPI a kg:Tool ;
+    rdfs:label "LabResultsAPI" .
+
+kg:Oncology_BiopsyReview a kg:Agent ;
+    rdfs:label "Oncology BiopsyReview" ;
+    kg:delegatesTo kg:Oncology_StagingAssessment ;
+    kg:handles kg:cap_ReviewBiopsy ;
+    kg:owns kg:tool_PathologyScanner ;
+    kg:specialty "Oncology" .
+
+kg:Oncology_StagingAssessment a kg:Agent ;
+    rdfs:label "Oncology StagingAssessment" ;
+    kg:delegatesTo kg:Oncology_TreatmentPlanning ;
+    kg:handles kg:cap_AssessCancerStage ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Oncology" .
+
+kg:Orthopedics_SurgicalPlanning a kg:Agent ;
+    rdfs:label "Orthopedics SurgicalPlanning" ;
+    kg:delegatesTo kg:Orthopedics_PostOpRehab ;
+    kg:handles kg:cap_PlanOrthopedicSurgery ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Orthopedics" .
+
+kg:cap_AnalyzeSpecimen a kg:Capability ;
+    rdfs:label "AnalyzeSpecimen" ;
+    kg:precedes kg:cap_CoordinateReferral,
+        kg:cap_ReconcileMedications .
+
+kg:cap_CheckDrugInteractions a kg:Capability ;
+    rdfs:label "CheckDrugInteractions" ;
+    kg:precedes kg:cap_PlanSurgery,
+        kg:cap_VerifyDosage .
+
+kg:cap_ConductScreening a kg:Capability ;
+    rdfs:label "ConductScreening" ;
+    kg:precedes kg:cap_EducatePatient,
+        kg:cap_ReviewBiopsy .
+
+kg:cap_EducatePatient a kg:Capability ;
+    rdfs:label "EducatePatient" ;
+    kg:precedes kg:cap_ConductFollowUp .
+
+kg:cap_ManageRehab a kg:Capability ;
+    rdfs:label "ManageRehab" ;
+    kg:precedes kg:cap_ConductFollowUp .
+
+kg:cap_ReconcileMedications a kg:Capability ;
+    rdfs:label "ReconcileMedications" ;
+    kg:precedes kg:cap_CheckDrugInteractions,
+        kg:cap_EducatePatient .
+
+kg:cap_RegisterPatient a kg:Capability ;
+    rdfs:label "RegisterPatient" ;
+    kg:precedes kg:cap_AssessPatientCondition .
+
+kg:tool_DrugDatabase a kg:Tool ;
+    rdfs:label "DrugDatabase" .
+
+kg:tool_SchedulingSystem a kg:Tool ;
+    rdfs:label "SchedulingSystem" .
+
+kg:Orthopedics_FractureAssessment a kg:Agent ;
+    rdfs:label "Orthopedics FractureAssessment" ;
+    kg:consults kg:Radiology_XRayReading ;
+    kg:delegatesTo kg:Orthopedics_ImagingReview ;
+    kg:handles kg:cap_AssessFracture ;
+    kg:owns kg:tool_ImagingViewer ;
+    kg:specialty "Orthopedics" .
+
+kg:PrimaryCare_ChronicDiseaseManagement a kg:Agent ;
+    rdfs:label "PrimaryCare ChronicDiseaseManagement" ;
+    kg:consults kg:LabPathology_LabAnalysis,
+        kg:Pharmacy_MedicationReconciliation ;
+    kg:handles kg:cap_ManageChronicCondition ;
+    kg:owns kg:tool_EHRSystem,
+        kg:tool_LabResultsAPI ;
+    kg:specialty "PrimaryCare" .
+
+kg:Cardiology_Triage a kg:Agent ;
+    rdfs:label "Cardiology Triage" ;
+    kg:delegatesTo kg:Cardiology_ECGInterpretation ;
+    kg:handles kg:cap_AssessChestPain ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Cardiology" .
+
+kg:LabPathology_PathologyReview a kg:Agent ;
+    rdfs:label "LabPathology PathologyReview" ;
+    kg:delegatesTo kg:Oncology_StagingAssessment ;
+    kg:handles kg:cap_ReviewBiopsy ;
+    kg:owns kg:tool_PathologyScanner ;
+    kg:returnsTo kg:Oncology_Screening,
+        kg:PrimaryCare_PreventiveScreening ;
+    kg:specialty "LabPathology" .
+
+kg:Pharmacy_DrugInteractionCheck a kg:Agent ;
+    rdfs:label "Pharmacy DrugInteractionCheck" ;
+    kg:delegatesTo kg:Pharmacy_DosageVerification,
+        kg:Surgery_SurgicalPlanning ;
+    kg:handles kg:cap_CheckDrugInteractions ;
+    kg:owns kg:tool_DrugDatabase ;
+    kg:returnsTo kg:Surgery_PreOpAssessment ;
+    kg:specialty "Pharmacy" .
+
+kg:Psychiatry_RiskAssessment a kg:Agent ;
+    rdfs:label "Psychiatry RiskAssessment" ;
+    kg:delegatesTo kg:Psychiatry_DiagnosticEvaluation ;
+    kg:handles kg:cap_AssessRisk ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Psychiatry" .
+
+kg:Pharmacy_MedicationReconciliation a kg:Agent ;
+    rdfs:label "Pharmacy MedicationReconciliation" ;
+    kg:delegatesTo kg:Pharmacy_DrugInteractionCheck ;
+    kg:handles kg:cap_ReconcileMedications ;
+    kg:owns kg:tool_DrugDatabase,
+        kg:tool_EHRSystem ;
+    kg:returnsTo kg:LabPathology_LabAnalysis,
+        kg:PrimaryCare_ChronicDiseaseManagement,
+        kg:PrimaryCare_PatientEducation ;
+    kg:specialty "Pharmacy" .
+
+kg:tool_ImagingViewer a kg:Tool ;
+    rdfs:label "ImagingViewer" .
+
+kg:Cardiology_TreatmentPlanning a kg:Agent ;
+    rdfs:label "Cardiology TreatmentPlanning" ;
+    kg:delegatesTo kg:Cardiology_PostCareFollowUp,
+        kg:Neurology_FollowUp,
+        kg:Oncology_SurvivorshipFollowUp,
+        kg:Orthopedics_FollowUp,
+        kg:Psychiatry_FollowUp ;
+    kg:handles kg:cap_PlanCardiacTreatment ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:returnsTo kg:Pediatrics_FollowUp,
+        kg:PrimaryCare_FollowUp ;
+    kg:specialty "Cardiology" .
+
+kg:Neurology_TreatmentPlanning a kg:Agent ;
+    rdfs:label "Neurology TreatmentPlanning" ;
+    kg:delegatesTo kg:Cardiology_PostCareFollowUp,
+        kg:Neurology_FollowUp,
+        kg:Oncology_SurvivorshipFollowUp,
+        kg:Orthopedics_FollowUp,
+        kg:Psychiatry_FollowUp ;
+    kg:handles kg:cap_PlanNeuroTreatment ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:returnsTo kg:Pediatrics_FollowUp,
+        kg:PrimaryCare_FollowUp ;
+    kg:specialty "Neurology" .
+
+kg:Oncology_ChemotherapyManagement a kg:Agent ;
+    rdfs:label "Oncology ChemotherapyManagement" ;
+    kg:delegatesTo kg:Cardiology_PostCareFollowUp,
+        kg:Neurology_FollowUp,
+        kg:Oncology_SurvivorshipFollowUp,
+        kg:Orthopedics_FollowUp,
+        kg:Psychiatry_FollowUp ;
+    kg:handles kg:cap_ManageChemotherapy ;
+    kg:owns kg:tool_DrugDatabase ;
+    kg:returnsTo kg:Pediatrics_FollowUp,
+        kg:PrimaryCare_FollowUp ;
+    kg:specialty "Oncology" .
+
+kg:Pediatrics_ReferralCoordination a kg:Agent ;
+    rdfs:label "Pediatrics ReferralCoordination" ;
+    kg:delegatesTo kg:Pediatrics_FollowUp,
+        kg:PrimaryCare_FollowUp ;
+    kg:handles kg:cap_CoordinateReferral ;
+    kg:owns kg:tool_EHRSystem,
+        kg:tool_SchedulingSystem ;
+    kg:refersTo kg:Cardiology_PostCareFollowUp,
+        kg:Neurology_FollowUp,
+        kg:Oncology_SurvivorshipFollowUp,
+        kg:Orthopedics_FollowUp,
+        kg:Psychiatry_FollowUp ;
+    kg:specialty "Pediatrics" .
+
+kg:PrimaryCare_ReferralCoordination a kg:Agent ;
+    rdfs:label "PrimaryCare ReferralCoordination" ;
+    kg:delegatesTo kg:Pediatrics_FollowUp,
+        kg:PrimaryCare_FollowUp ;
+    kg:handles kg:cap_CoordinateReferral ;
+    kg:owns kg:tool_EHRSystem,
+        kg:tool_SchedulingSystem ;
+    kg:refersTo kg:Cardiology_PostCareFollowUp,
+        kg:Neurology_FollowUp,
+        kg:Oncology_SurvivorshipFollowUp,
+        kg:Orthopedics_FollowUp,
+        kg:Psychiatry_FollowUp ;
+    kg:specialty "PrimaryCare" .
+
+kg:Psychiatry_TherapyCoordination a kg:Agent ;
+    rdfs:label "Psychiatry TherapyCoordination" ;
+    kg:delegatesTo kg:Cardiology_PostCareFollowUp,
+        kg:Neurology_FollowUp,
+        kg:Oncology_SurvivorshipFollowUp,
+        kg:Orthopedics_FollowUp,
+        kg:Psychiatry_FollowUp ;
+    kg:handles kg:cap_CoordinateTherapy ;
+    kg:owns kg:tool_SchedulingSystem ;
+    kg:returnsTo kg:Pediatrics_FollowUp,
+        kg:PrimaryCare_FollowUp ;
+    kg:specialty "Psychiatry" .
+
+kg:Surgery_PreOpAssessment a kg:Agent ;
+    rdfs:label "Surgery PreOpAssessment" ;
+    kg:consults kg:Pharmacy_DrugInteractionCheck ;
+    kg:handles kg:cap_AssessSurgicalRisk ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Surgery" .
+
+kg:cap_AssessPatientCondition a kg:Capability ;
+    rdfs:label "AssessPatientCondition" ;
+    kg:precedes kg:cap_AnalyzeSpecimen,
+        kg:cap_AssessChestPain,
+        kg:cap_AssessRisk,
+        kg:cap_AssessSurgicalRisk,
+        kg:cap_ConductScreening .
+
+kg:Oncology_Screening a kg:Agent ;
+    rdfs:label "Oncology Screening" ;
+    kg:consults kg:LabPathology_PathologyReview ;
+    kg:delegatesTo kg:Oncology_BiopsyReview ;
+    kg:handles kg:cap_ConductScreening ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:returnsTo kg:PrimaryCare_PatientEducation ;
+    kg:specialty "Oncology" .
+
+kg:Orthopedics_PostOpRehab a kg:Agent ;
+    rdfs:label "Orthopedics PostOpRehab" ;
+    kg:delegatesTo kg:Cardiology_PostCareFollowUp,
+        kg:Neurology_FollowUp,
+        kg:Oncology_SurvivorshipFollowUp,
+        kg:Orthopedics_FollowUp,
+        kg:Psychiatry_FollowUp ;
+    kg:handles kg:cap_ManageRehab ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:returnsTo kg:Pediatrics_FollowUp,
+        kg:PrimaryCare_FollowUp ;
+    kg:specialty "Orthopedics" .
+
+kg:PrimaryCare_PreventiveScreening a kg:Agent ;
+    rdfs:label "PrimaryCare PreventiveScreening" ;
+    kg:consults kg:LabPathology_PathologyReview ;
+    kg:delegatesTo kg:PrimaryCare_PatientEducation ;
+    kg:handles kg:cap_ConductScreening ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:refersTo kg:Oncology_BiopsyReview ;
+    kg:specialty "PrimaryCare" .
+
+kg:EmergencyMedicine_RapidAssessment a kg:Agent ;
+    rdfs:label "EmergencyMedicine RapidAssessment" ;
+    kg:escalatesTo kg:Cardiology_Triage,
+        kg:LabPathology_LabAnalysis,
+        kg:Oncology_Screening,
+        kg:PrimaryCare_PreventiveScreening,
+        kg:Psychiatry_RiskAssessment,
+        kg:Surgery_PreOpAssessment ;
+    kg:handles kg:cap_AssessPatientCondition ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "EmergencyMedicine" .
+
+kg:PrimaryCare_PatientEducation a kg:Agent ;
+    rdfs:label "PrimaryCare PatientEducation" ;
+    kg:delegatesTo kg:Pediatrics_FollowUp,
+        kg:PrimaryCare_FollowUp ;
+    kg:handles kg:cap_EducatePatient ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:refersTo kg:Cardiology_PostCareFollowUp,
+        kg:Neurology_FollowUp,
+        kg:Oncology_SurvivorshipFollowUp,
+        kg:Orthopedics_FollowUp,
+        kg:Psychiatry_FollowUp ;
+    kg:specialty "PrimaryCare" .
+
+kg:Pediatrics_AcuteIllnessAssessment a kg:Agent ;
+    rdfs:label "Pediatrics AcuteIllnessAssessment" ;
+    kg:consults kg:LabPathology_LabAnalysis ;
+    kg:delegatesTo kg:PrimaryCare_PreventiveScreening ;
+    kg:handles kg:cap_AssessPatientCondition ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:refersTo kg:Cardiology_Triage,
+        kg:Oncology_Screening,
+        kg:Psychiatry_RiskAssessment,
+        kg:Surgery_PreOpAssessment ;
+    kg:specialty "Pediatrics" .
+
+kg:PrimaryCare_GeneralAssessment a kg:Agent ;
+    rdfs:label "PrimaryCare GeneralAssessment" ;
+    kg:consults kg:LabPathology_LabAnalysis ;
+    kg:delegatesTo kg:PrimaryCare_PreventiveScreening ;
+    kg:handles kg:cap_AssessPatientCondition ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:refersTo kg:Cardiology_Triage,
+        kg:Oncology_Screening,
+        kg:Psychiatry_RiskAssessment,
+        kg:Surgery_PreOpAssessment ;
+    kg:specialty "PrimaryCare" .
+
+kg:Cardiology_PostCareFollowUp a kg:Agent ;
+    rdfs:label "Cardiology PostCareFollowUp" ;
+    kg:handles kg:cap_ConductFollowUp ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Cardiology" .
+
+kg:LabPathology_LabAnalysis a kg:Agent ;
+    rdfs:label "LabPathology LabAnalysis" ;
+    kg:consults kg:Pharmacy_MedicationReconciliation ;
+    kg:handles kg:cap_AnalyzeSpecimen ;
+    kg:owns kg:tool_LabResultsAPI ;
+    kg:returnsTo kg:Pediatrics_AcuteIllnessAssessment,
+        kg:Pediatrics_ReferralCoordination,
+        kg:PrimaryCare_ChronicDiseaseManagement,
+        kg:PrimaryCare_GeneralAssessment,
+        kg:PrimaryCare_ReferralCoordination ;
+    kg:specialty "LabPathology" .
+
+kg:Neurology_FollowUp a kg:Agent ;
+    rdfs:label "Neurology FollowUp" ;
+    kg:handles kg:cap_ConductFollowUp ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Neurology" .
+
+kg:Oncology_SurvivorshipFollowUp a kg:Agent ;
+    rdfs:label "Oncology SurvivorshipFollowUp" ;
+    kg:handles kg:cap_ConductFollowUp ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Oncology" .
+
+kg:Orthopedics_FollowUp a kg:Agent ;
+    rdfs:label "Orthopedics FollowUp" ;
+    kg:handles kg:cap_ConductFollowUp ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Orthopedics" .
+
+kg:Pediatrics_FollowUp a kg:Agent ;
+    rdfs:label "Pediatrics FollowUp" ;
+    kg:handles kg:cap_ConductFollowUp ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Pediatrics" .
+
+kg:PrimaryCare_FollowUp a kg:Agent ;
+    rdfs:label "PrimaryCare FollowUp" ;
+    kg:handles kg:cap_ConductFollowUp ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "PrimaryCare" .
+
+kg:Psychiatry_FollowUp a kg:Agent ;
+    rdfs:label "Psychiatry FollowUp" ;
+    kg:handles kg:cap_ConductFollowUp ;
+    kg:owns kg:tool_EHRSystem ;
+    kg:specialty "Psychiatry" .
+
+kg:cap_ConductFollowUp a kg:Capability ;
+    rdfs:label "ConductFollowUp" .
+
+kg:tool_EHRSystem a kg:Tool ;
+    rdfs:label "EHRSystem" .
+

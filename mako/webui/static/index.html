@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HestiaHealth — Clinical Routing Console</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="brand-mark">H</span>
+    <div class="brand-text">
+      <span class="brand-name">HestiaHealth</span>
+      <span class="brand-sub">Clinical Decision Routing</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="status-pill status-ok" id="model-status">
+      <span class="dot"></span> Local model — offline
+    </span>
+    <span class="topbar-meta" id="model-meta">Qwen2.5-3B-Instruct · llama.cpp</span>
+  </div>
+</header>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <section class="panel">
+      <h2 class="panel-title">New case</h2>
+      <textarea id="case-input" rows="5" placeholder="Describe the patient case — e.g. &quot;62-year-old presents with sudden-onset facial droop and slurred speech&quot;"></textarea>
+      <button id="submit-case" class="btn-primary">Route case</button>
+      <p class="hint" id="submit-hint">Routes through MAKO's knowledge-graph orchestrator, running entirely offline.</p>
+    </section>
+
+    <section class="panel panel-grow">
+      <h2 class="panel-title">Recent cases</h2>
+      <ul class="case-list" id="case-list">
+        <li class="case-list-empty">No cases yet</li>
+      </ul>
+    </section>
+  </aside>
+
+  <main class="main">
+    <div id="empty-state" class="empty-state">
+      <div class="empty-state-inner">
+        <p class="empty-state-title">No case selected</p>
+        <p class="empty-state-sub">Start a new case, or select one from the sidebar, to see the agent routing decisions live.</p>
+      </div>
+    </div>
+
+    <div id="case-view" class="case-view hidden">
+      <div class="case-header">
+        <div>
+          <p class="case-header-label">Case</p>
+          <h1 class="case-header-title" id="case-title">—</h1>
+        </div>
+        <span class="status-pill" id="case-status">—</span>
+      </div>
+
+      <div class="coverage" id="coverage-wrap">
+        <p class="coverage-label">Capabilities covered</p>
+        <div class="coverage-bar"><div class="coverage-fill" id="coverage-fill"></div></div>
+        <p class="coverage-count" id="coverage-count">0 / 0</p>
+      </div>
+
+      <ol class="timeline" id="timeline"></ol>
+    </div>
+  </main>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

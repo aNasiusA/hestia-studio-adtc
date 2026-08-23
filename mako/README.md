@@ -22,13 +22,22 @@ logutil.py     structured logging
 orchestrator/  the LangGraph StateGraph hop-decision loop + trace/eval records
 pipeline/      task-type recall (embedding-based) + entry-agent selection
 requirements.txt
+webui/         clinical routing console (rebuilt — see below)
 ```
 
 Left out on purpose: `.venv/` (166MB, rebuild your own — see below),
-`webui/` (217MB, an unrelated Cytoscape.js graph explorer), `runs/` and
-`logs/` (old run artifacts from unrelated sessions), and the design/planning
-docs (`plan.md`, `goal_check.md`) that document the *research* rather than
-the running system.
+`runs/` and `logs/` (old run artifacts from unrelated sessions), and the
+design/planning docs (`plan.md`, `goal_check.md`) that document the
+*research* rather than the running system.
+
+MAKO's original `webui/` was a React + TypeScript + Vite + Tailwind +
+Cytoscape.js graph explorer (217MB with `node_modules`, no build step
+included) — a developer-facing knowledge-graph browser, not something a
+clinician would use. **It was not carried over.** `webui/` here is a
+from-scratch replacement: a single-page, dependency-free HTML/CSS/JS
+console styled like real clinical software (dense, calm, high-contrast, no
+framework chrome), reusing MAKO's existing FastAPI backend (trimmed from the
+same original `webui/backend/`) unchanged. See [`webui/README.md`](webui/README.md).
 
 ## Running it
 

@@ -1,0 +1,5 @@
+# Web layer for v3-langraph, on top of v3-langraph's own requirements.txt
+# (rdflib, langchain-core/langgraph/langsmith, provider SDKs, etc — install
+# that first). This file adds only what the FastAPI + SSE wrapper needs.
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0

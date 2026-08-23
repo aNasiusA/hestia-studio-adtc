@@ -97,6 +97,49 @@ function setStatus(pillEl, kind, text) {
   pillEl.textContent = text;
 }
 
+// --- Minimal markdown rendering for agent reasoning text -------------------
+// Agent briefs are free-text LLM output, not markup — always escape first,
+// then only introduce HTML we generate ourselves from known-safe patterns.
+// This is intentionally small (bold/italic/code/bullets + labeled-field
+// detection), not a full markdown parser.
+
+function escapeHtml(s) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function mdInline(s) {
+  s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/__(.+?)__/g, "<strong>$1</strong>");
+  s = s.replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, "$1<em>$2</em>");
+  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+  return s;
+}
+
+const titleCase = (s) => s.replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
+
+// Model output for a step brief tends to arrive as labeled fields —
+// "Accomplished: ...", "Current status: ...", "Next step: ..." — but not
+// always cleanly newline-separated; sometimes all three land in one run-on
+// line. Bold the label wherever one starts (line start, or after a
+// sentence boundary) rather than only at the very start of a line, so
+// mid-line labels still get picked up.
+function boldLabels(line) {
+  return line.replace(/(^|\.\s+)([A-Za-z][A-Za-z /]{2,30}):\s+/g, (_, pre, label) => `${pre}<strong>${titleCase(label)}:</strong> `);
+}
+
+function renderBrief(raw) {
+  if (!raw) return "";
+  const lines = escapeHtml(raw).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  return lines.map((line) => {
+    const bullet = line.match(/^[-*]\s+(.+)$/);
+    if (bullet) return `<p class="brief-line">&#8226; ${mdInline(boldLabels(bullet[1]))}</p>`;
+    return `<p class="brief-line">${mdInline(boldLabels(line))}</p>`;
+  }).join("");
+}
+
 function renderStep(step, isTerminal) {
   const li = document.createElement("li");
   li.className = "step" + (isTerminal ? " terminal" : "");
@@ -136,7 +179,7 @@ function renderStep(step, isTerminal) {
   if (step.brief) {
     const brief = document.createElement("div");
     brief.className = "step-brief";
-    brief.textContent = step.brief;
+    brief.innerHTML = renderBrief(step.brief);
     card.appendChild(brief);
   }
 

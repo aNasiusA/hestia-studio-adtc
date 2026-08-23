@@ -9,11 +9,14 @@ show the GitHub repo in a browser tab. It records system audio + mic if you
 enable the mic in the little control bar that pops up — make sure mic is ON.
 
 Two windows to have ready before you hit record:
-1. A **Terminal**, already `cd`'d into `/Users/anasiusa/Development/hestia-studio-adtc`
+1. A **Terminal**, split or two tabs:
+   - Tab A: `cd /Users/anasiusa/Development/hestia-studio-adtc`
+   - Tab B: `cd /Users/anasiusa/Development/final-year-project/Mako-Demo/v3-langraph`
 2. A **browser tab** open to `https://github.com/aNasiusA/hestia-studio-adtc`
 
 The local model server is already running in the background on port 8811 —
-don't restart it mid-recording, it's warm and fast right now.
+don't restart it mid-recording, it's warm and fast right now. Both demo
+commands below are pre-verified against it.
 
 ---
 
@@ -26,27 +29,76 @@ don't restart it mid-recording, it's warm and fast right now.
 
 *(Show the GitHub repo README/REPORT.md briefly while saying this.)*
 
-## 0:15 – 0:35 — What MAKO actually does
+## 0:15 – 0:30 — What MAKO actually does
 
 > "MAKO routes a patient case between specialist agents — cardiology,
 > neurology, oncology and more — using a knowledge graph. At every step, an
-> LLM has to decide which specialist should act next. Today that decision
-> requires a call to a cloud model. HestiaHealth replaces that one call with
-> a small model running locally through llama.cpp — Qwen 2.5, 3 billion
-> parameters, quantized to about 2 gigabytes."
+> LLM decides which specialist should act next. Today that decision needs a
+> cloud model. HestiaHealth replaces that one call with Qwen 2.5, 3 billion
+> parameters, quantized to about 2 gigabytes, running locally through
+> llama.cpp."
 
-*(Scroll REPORT.md's Design Decisions section briefly.)*
+## 0:30 – 1:05 — Live demo: MAKO's actual orchestrator, not a mock
 
-## 0:35 – 1:10 — Live demo: the model making a real hop decision, offline
+Switch to **Terminal Tab B** (the MAKO `v3-langraph` directory). Say this
+while you run the command:
 
-Switch to Terminal. Say this while you run the command:
-
-> "Here it is actually deciding. This is the exact prompt MAKO's orchestrator
-> would send — a real patient case, cardiac chest pain, deciding which
-> specialist agent goes next — running against the local model, no internet
-> involved."
+> "This isn't a prompt imitating MAKO — this is MAKO's real orchestrator
+> code, pointed at the local model instead of the cloud, deciding a real
+> patient case live."
 
 Paste and run:
+
+```bash
+python -m orchestrator.run "A 54-year-old patient presents with chest pain; triage flags possible cardiac involvement"
+```
+
+Let the log stream on screen — it takes about 6 seconds and shows, live:
+- entry agent selected from the knowledge graph
+- a hop decision proposed, rejected, and retried against the graph
+- the accepted handoff, and why
+- the orchestrator's own decision to stop and ask for more input
+
+> "Entry agent picked from the graph, a handoff decision validated against a
+> real graph edge — it even rejected its own proposals twice before landing
+> on one that passed — and then it stopped itself when it judged the case
+> needed more information. That's the actual orchestrator, running fully
+> offline, in about six seconds."
+
+## 1:05 – 1:30 — The numbers
+
+Switch to **Terminal Tab A** (the submission repo).
+
+> "Benchmarked with ADTC's own profiler tool, which drives llama-bench
+> directly — the same measurement path judges use."
+
+Paste and run:
+
+```bash
+cat submission.json | python3 -m json.tool | grep -A5 throughput
+cat submission.json | python3 -m json.tool | grep -A4 memory
+```
+
+> "Thirty tokens a second, three point eight gigabytes peak memory — inside
+> the seven gigabyte budget — no thermal throttling."
+
+## 1:30 – 1:55 — Wrap
+
+> "The repo has the full report, the benchmarks, the design decisions, and
+> the unedited trace from that live MAKO run so it's checkable, not just
+> claimed. This is HestiaHealth — MAKO's autonomous clinical routing,
+> running entirely offline, on hardware people already have."
+
+*(Show the repo's `mako-integration/` folder or `REPORT.md` one more time.)*
+
+## 1:55 – end — Stop recording
+
+---
+
+## Fallback demo (if the live MAKO run doesn't want to cooperate on camera)
+
+The raw local-model call is also pre-verified and much simpler to reuse —
+run from the **submission repo** directory:
 
 ```bash
 curl -s http://localhost:8811/v1/chat/completions \
@@ -58,36 +110,8 @@ curl -s http://localhost:8811/v1/chat/completions \
   }' | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['choices'][0]['message']['content'])"
 ```
 
-It answers in under a second: **"Cardiology_ECGInterpretation..."** with a
-correct clinical justification. Let it finish on screen, then say:
-
-> "Right agent, right reasoning, sub-second — fully local."
-
-## 1:10 – 1:35 — The numbers
-
-> "Benchmarked with ADTC's own profiler tool, which drives llama-bench
-> directly — this is the same measurement path judges use."
-
-Paste and run:
-
-```bash
-cat submission.json | python3 -m json.tool | grep -A5 throughput
-cat submission.json | python3 -m json.tool | grep -A4 memory
-```
-
-> "Thirty tokens a second, three point eight gigabytes peak memory — inside
-> the seven gigabyte budget — and no thermal throttling."
-
-## 1:35 – 1:55 — Wrap
-
-> "The repo has the full report, the benchmarks, the design decisions — why
-> Qwen 2.5 at this size, why Q4_K_M quantization, what I rejected and why.
-> This is HestiaHealth — MAKO's autonomous clinical routing, running
-> entirely offline, on hardware people already have."
-
-*(Show the repo's file listing or REPORT.md one more time.)*
-
-## 1:55 – end — Stop recording
+Responds in under a second with a correct clinical decision. Use this if you
+want a shorter, guaranteed-fast segment instead of the full orchestrator run.
 
 ---
 

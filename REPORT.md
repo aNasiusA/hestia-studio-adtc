@@ -1,6 +1,6 @@
 # Technical Report — Hestia Studio: A Local LLM Backend for MAKO's Autonomous Clinical Orchestrator
 
-**Team ID:** 1392828 *(Devpost project ID — placeholder pending confirmation of the actual ADTF portal team ID)*
+**Team ID:** 1145912 *(Devpost submission ID for this hackathon registration — per ADTC's own FAQ, "Your Team ID is generated automatically when you register your team on DevPost," which is this ID, not the underlying portfolio project's ID)*
 **Domain:** autonomous_ai_agents
 **Model:** Qwen2.5-3B-Instruct-Q4_K_M
 

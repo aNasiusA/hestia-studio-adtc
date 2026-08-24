@@ -87,9 +87,10 @@ The on-call cardiologist confirms the patient should be admitted for observation
 
 *(Terminal, in the submission repo directory)*
 
-> "Benchmarked with ADTC's own profiler — the same measurement path judges
-> use: thirty tokens a second, three point eight gigabytes peak memory,
-> inside the seven gigabyte budget, no thermal throttling."
+> "Benchmarked with ADTC's own profiler, on the raw model — the same
+> measurement path judges use: thirty tokens a second, three point eight
+> gigabytes peak memory, inside the seven gigabyte budget, no thermal
+> throttling. The orchestrator you just saw adds a bit more on top of that."
 
 ```bash
 cat submission.json | python3 -m json.tool | grep -A5 throughput

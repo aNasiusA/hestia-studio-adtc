@@ -62,6 +62,7 @@ These are self-reported *development-machine* benchmarks (`environment.measured_
 
 - Peak RSS (3.75 GB) already leaves meaningful headroom under the ~7 GB memory budget even on this proxy machine; CPU-only inference on the actual reference laptop (no Metal/unified-memory acceleration) should not increase memory pressure, since llama.cpp's CPU backend allocates comparably or more conservatively than the Metal backend used here.
 - First-token latency here is inflated by this measurement including one-time model load time within the same timed window; a warm/resident model on the target laptop should see substantially lower per-request latency in the actual orchestrator loop.
+- **This table is the model in isolation**, benchmarked exactly as ADTC's profiler measures it (`llama-bench` against the raw `.gguf`, no orchestrator involved) — which is also, per this challenge's own rules, the only thing the automated scoring measures (see "What we learned" above). Running `mako/`'s orchestrator and `webui/` backend alongside the model adds Python/LangGraph/FastAPI/KG overhead on top of this baseline; we did not attempt to precisely measure that combined figure — ad-hoc RSS sampling of a running `llama-server` process on macOS was unreliable here (llama.cpp mmaps the weights, and OS-level RSS accounting for mmap'd pages undercounts them in a way that doesn't match the profiler's own methodology), so rather than publish a number we couldn't verify, we're stating the limitation plainly instead.
 
 ---
 

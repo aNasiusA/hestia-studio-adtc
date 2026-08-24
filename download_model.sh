@@ -34,5 +34,18 @@ else
   exit 1
 fi
 
+# Verify the download actually completed — a dropped connection or proxy
+# truncation can end curl/wget "successfully" with a partial file, which
+# llama.cpp then fails on much later with an opaque "tensor data not within
+# file bounds" error instead of a clear download error here. Compare against
+# the server's own Content-Length before trusting the file.
+EXPECTED_SIZE="$(curl -sI -L "$MODEL_URL" | tr -d '\r' | awk -F': ' 'tolower($1)=="content-length"{s=$2} END{print s}')"
+ACTUAL_SIZE="$(stat -f%z "$MODEL_FILE.partial" 2>/dev/null || stat -c%s "$MODEL_FILE.partial")"
+if [[ -n "$EXPECTED_SIZE" && "$ACTUAL_SIZE" != "$EXPECTED_SIZE" ]]; then
+  echo "error: downloaded file size ($ACTUAL_SIZE bytes) does not match Content-Length ($EXPECTED_SIZE bytes) — download was truncated" >&2
+  rm -f "$MODEL_FILE.partial"
+  exit 1
+fi
+
 mv "$MODEL_FILE.partial" "$MODEL_FILE"
-echo "done: $MODEL_FILE"
+echo "done: $MODEL_FILE ($ACTUAL_SIZE bytes, verified against Content-Length)"
